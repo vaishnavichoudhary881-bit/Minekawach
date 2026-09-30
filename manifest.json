@@ -1,0 +1,10 @@
+{
+  "name": "MineKawach — Mine Safety & Compliance Platform",
+  "short_name": "MineKawach",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#0052CC",
+  "description": "Integrated safety, workforce and compliance platform for coal mines. Works offline-first; syncs when connected.",
+  "icons": []
+}

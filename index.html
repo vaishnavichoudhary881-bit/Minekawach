@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2338">
+<title>MineKawach Prototype v2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7f6;color:#17201d}
+header{background:#0052CC;color:white;padding:18px 20px;position:sticky;top:0;z-index:5}
+.brand{font-size:24px;font-weight:800}.sub{opacity:.8;font-size:13px;margin-top:3px}
+main{max-width:1100px;margin:auto;padding:20px}.screen{display:none}.screen.active{display:block}
+.card{background:white;border-radius:16px;padding:18px;margin:12px 0;box-shadow:0 3px 15px #00000010}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+button{border:0;border-radius:10px;padding:12px 15px;background:#0052CC;color:white;font-weight:700;cursor:pointer}
+button.secondary{background:#e7efec;color:#0052CC}button.danger{background:#b42318}
+button.warn{background:#b7791f}button:disabled{opacity:.45;cursor:not-allowed}.back{margin-bottom:14px}
+h1,h2,h3{margin-top:0}.stat{font-size:28px;font-weight:800}.muted{color:#66736e}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#e6f5ee;color:#087443}
+.badge.red{background:#fde8e7;color:#b42318}.badge.yellow{background:#fff3d6;color:#8a5a00}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #edf0ef}
+input,select,textarea{width:100%;padding:11px;border:1px solid #ccd6d2;border-radius:9px;margin:6px 0 12px;font:inherit}
+.notice{padding:12px;border-radius:10px;background:#eef7f4;margin:10px 0}
+.offline{position:fixed;bottom:15px;right:15px;background:#b7791f;color:white;padding:9px 13px;border-radius:999px;font-weight:700;z-index:20}
+.online{background:#087443}.center{text-align:center}.big-icon{font-size:50px}
+.ppe-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #edf0ef}
+.step{display:inline-block;width:26px;height:26px;border-radius:50%;background:#0052CC;color:#fff;text-align:center;line-height:26px;font-weight:800;margin-right:8px}
+.step.done{background:#087443}.step.pending{background:#b7791f}
+.mono{font-family:Consolas,monospace;font-size:11px;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 8px;border-bottom:1px solid #edf0ef;text-align:left}
+th{color:#66736e;font-size:12px;text-transform:uppercase}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>
+/* ================================================================
+   REGIONAL MINE INTELLIGENCE — isolated stylesheet (additive only)
+   Namespaced under .rmi to avoid touching existing MineKawach CSS.
+   ================================================================ */
+.rmi{--rmi-bg:#0b1220;--rmi-panel:#111a2e;--rmi-line:#22304d;--rmi-text:#e7edf7;--rmi-muted:#8ea0bf;
+ --rmi-blue:#2f7dff;--rmi-green:#1fb56f;--rmi-yellow:#e0a52c;--rmi-red:#e14b4b;--rmi-grey:#5b6c8c;
+ background:var(--rmi-bg);color:var(--rmi-text);border-radius:16px;padding:14px;margin:12px 0;
+ box-shadow:0 3px 15px #00000030;font-family:Arial,sans-serif}
+.rmi *{box-sizing:border-box}
+.rmi h2,.rmi h3,.rmi h4{color:var(--rmi-text);margin:0 0 8px}
+.rmi .muted{color:var(--rmi-muted)}
+.rmi-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.rmi-live{display:flex;align-items:center;gap:8px;background:#0d1830;border:1px solid var(--rmi-line);
+ padding:7px 12px;border-radius:999px;font-weight:700;font-size:13px}
+.rmi-dot{width:9px;height:9px;border-radius:50%;background:var(--rmi-green);animation:rmiPulse 1.4s infinite}
+.rmi-live.paused .rmi-dot{background:var(--rmi-grey);animation:none}
+@keyframes rmiPulse{0%{box-shadow:0 0 0 0 #1fb56f66}70%{box-shadow:0 0 0 7px #1fb56f00}100%{box-shadow:0 0 0 0 #1fb56f00}}
+.rmi-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 7px;
+ border-radius:5px;background:#3a2a06;color:#f5c563;border:1px solid #5a4009}
+.rmi-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.rmi-stat{background:var(--rmi-panel);border:1px solid var(--rmi-line);border-radius:12px;padding:10px 12px}
+.rmi-stat .n{font-size:22px;font-weight:800}
+.rmi-stat .l{font-size:11px;color:var(--rmi-muted);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.rmi-controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.rmi-controls input,.rmi-controls select{background:var(--rmi-panel);border:1px solid var(--rmi-line);
+ color:var(--rmi-text);padding:9px 10px;border-radius:9px;font:inherit;margin:0;min-width:140px;flex:1}
+.rmi-controls button{border:1px solid var(--rmi-line);background:var(--rmi-panel);color:var(--rmi-text);
+ border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+.rmi-controls button.on{background:var(--rmi-blue);border-color:var(--rmi-blue)}
+.rmi-body{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:860px){.rmi-body{grid-template-columns:2.1fr 1fr}}
+.rmi-mapwrap{position:relative;border:1px solid var(--rmi-line);border-radius:12px;overflow:hidden;
+ background:#08101f;min-height:420px}
+.rmi-map{width:100%;height:420px;background:#08101f}
+.rmi-legend{position:absolute;left:10px;bottom:10px;background:#0d1830e6;border:1px solid var(--rmi-line);
+ border-radius:10px;padding:8px 10px;font-size:11px;z-index:500;display:flex;flex-direction:column;gap:4px}
+.rmi-legend .li{display:flex;align-items:center;gap:6px}
+.rmi-legend .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.rmi-hover{position:absolute;z-index:600;background:#0d1830f2;border:1px solid var(--rmi-line);
+ border-radius:10px;padding:10px 12px;font-size:12px;max-width:230px;pointer-events:none;
+ box-shadow:0 6px 20px #00000060;display:none}
+.rmi-hover b{font-size:13px}
+.rmi-hover .row{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border:0}
+.rmi-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800}
+.rmi-badge.op{background:#0e3a24;color:#4fdc9a}.rmi-badge.closed{background:#3a1414;color:#f28b8b}
+.rmi-badge.inactive{background:#3a330f;color:#e8c86b}.rmi-badge.warn{background:#3a2a06;color:#f5c563}
+.rmi-badge.crit{background:#4a1010;color:#ff8a8a}
+.rmi-badge.compliant{background:#0e3a24;color:#4fdc9a}.rmi-badge.attention{background:#3a330f;color:#e8c86b}
+.rmi-badge.noncompliant{background:#4a1010;color:#ff8a8a}.rmi-badge.unavailable{background:#22304d;color:#8ea0bf}
+.rmi-marker{border-radius:50%;border:2px solid #0b1220;box-shadow:0 0 0 3px #00000040}
+.rmi-marker.op{background:var(--rmi-green)}.rmi-marker.closed{background:var(--rmi-grey)}
+.rmi-marker.inactive{background:var(--rmi-yellow)}.rmi-marker.warn{background:#ff9d2e}
+.rmi-marker.crit{background:var(--rmi-red);box-shadow:0 0 0 4px #e14b4b55}
+.rmi-panel{background:var(--rmi-panel);border:1px solid var(--rmi-line);border-radius:12px;padding:14px;
+ max-height:520px;overflow-y:auto}
+.rmi-panel .sec{border-top:1px solid var(--rmi-line);padding-top:10px;margin-top:10px}
+.rmi-panel .sec:first-child{border-top:0;padding-top:0;margin-top:0}
+.rmi-kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px}
+.rmi-kv .k{color:var(--rmi-muted)}
+.rmi-empty{color:var(--rmi-muted);font-size:13px;text-align:center;padding:30px 10px}
+.rmi-close{background:transparent;border:1px solid var(--rmi-line);color:var(--rmi-text);
+ border-radius:8px;padding:5px 9px;font-size:12px;float:right;cursor:pointer}
+.rmi-vision{margin-top:14px}
+.rmi-vision .box{border:1px dashed var(--rmi-line);border-radius:12px;padding:14px;text-align:center}
+.rmi-vision img{max-width:100%;border-radius:10px;margin-top:10px}
+.rmi-detbox{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;
+ margin:3px 4px 0 0;background:#0e3a24;color:#4fdc9a}
+.rmi-detbox.viol{background:#4a1010;color:#ff8a8a}
+@media(max-width:859px){
+ .rmi-panel{max-height:none}
+ .rmi-panel.rmi-sheet{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:900;border-radius:16px 16px 0 0;
+  max-height:78vh;box-shadow:0 -8px 30px #00000060}
+ .rmi-sheet-backdrop{position:fixed;inset:0;background:#00000070;z-index:850}
+}
+
+</style>
+<style>
+/* ================================================================
+   GOVERNMENT-STYLE VISUAL IDENTITY LAYER — additive only.
+   Everything here is namespaced under .mk- so none of the existing
+   rules above (body, header, .card, .grid, button, .badge, etc.)
+   are modified or overridden except body's background (see note).
+   ================================================================ */
+:root{
+ --mk-navy:#0b2338;--mk-navy2:#123049;--mk-charcoal:#1c2227;--mk-green:#0f5132;
+ --mk-offwhite:#f7f5ef;--mk-grey:#e9e6dd;--mk-saffron:#c9701b;--mk-ink:#1b2430;
+ --mk-line:#dcd8cc;--mk-muted:#5c6672;
+}
+/* subtle geological/grid backdrop behind the light sections — reorganizes
+   the flat background only, does not change any element's behaviour */
+body{background:
+ radial-gradient(circle at 1px 1px, #00000009 1px, transparent 0) 0 0/22px 22px,
+ var(--mk-offwhite);}
+
+.mk-govstrip{background:var(--mk-navy);color:#dbe6ee;font-size:11.5px;padding:7px 16px;
+ display:flex;justify-content:center;align-items:center;gap:10px;letter-spacing:.2px;text-align:center}
+.mk-tricolor{display:inline-flex;flex-direction:column;width:18px;height:12px;border-radius:2px;overflow:hidden;flex:0 0 auto}
+.mk-tricolor span{flex:1}
+.mk-tricolor span:nth-child(1){background:#e07b1a}
+.mk-tricolor span:nth-child(2){background:#f2efe6}
+.mk-tricolor span:nth-child(3){background:#0f5132}
+
+.mk-hero{background:linear-gradient(160deg,var(--mk-navy),var(--mk-navy2));color:#eef3f6;
+ border-radius:14px;padding:28px 22px;margin:0 0 14px;position:relative;overflow:hidden;
+ border:1px solid #1c3c58}
+.mk-hero-grid{display:grid;grid-template-columns:1fr;gap:20px;position:relative;z-index:1}
+@media(min-width:820px){.mk-hero-grid{grid-template-columns:1.3fr 1fr;align-items:center}}
+.mk-hero h1{font-size:30px;margin:0 0 8px;letter-spacing:.2px}
+.mk-hero .tagline{color:#a9c3d6;font-size:14.5px;font-weight:600;margin-bottom:12px}
+.mk-hero .desc{font-size:13px;color:#c9d6de;max-width:520px;line-height:1.65}
+.mk-hero .pillline{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:#7fae8c;margin-top:16px;font-weight:700}
+.mk-hero-side{display:flex;align-items:center;justify-content:center;position:relative;min-height:120px}
+.mk-chakra-wm{position:absolute;top:50%;right:-30px;transform:translateY(-50%);width:260px;height:260px;opacity:.05;pointer-events:none}
+.mk-mine-glyph{width:100%;max-width:230px;opacity:.9}
+
+.mk-section{margin:34px 0}
+.mk-section h2{font-size:21px;margin:0 0 4px;color:var(--mk-ink)}
+.mk-section .lead{color:var(--mk-muted);font-size:13px;margin:0 0 18px;max-width:660px;line-height:1.6}
+
+.mk-about-grid,.mk-cap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.mk-about-card{background:#fff;border:1px solid var(--mk-line);border-radius:10px;padding:16px}
+.mk-about-card .ic{font-size:21px;margin-bottom:8px}
+.mk-about-card h4{margin:0 0 6px;font-size:14.5px;color:var(--mk-ink)}
+.mk-about-card p{margin:0;font-size:12.5px;color:var(--mk-muted);line-height:1.55}
+
+.mk-stats{background:var(--mk-charcoal);color:#eee;border-radius:14px;padding:26px 20px}
+.mk-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;text-align:center}
+.mk-stats-grid .num{font-size:30px;font-weight:800;color:#f2b134;font-variant-numeric:tabular-nums}
+.mk-stats-grid .lbl{font-size:11.5px;color:#b7c0c6;margin-top:6px;line-height:1.4}
+.mk-source{font-size:10.5px;color:#8a959c;margin-top:18px;text-align:center;line-height:1.5}
+
+.mk-charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.mk-chart{background:#fff;border:1px solid var(--mk-line);border-radius:10px;padding:16px}
+.mk-chart h4{font-size:13px;margin:0 0 2px;color:var(--mk-ink)}
+.mk-chart .period{font-size:10.5px;color:#8a959c;margin-bottom:16px}
+.mk-bars{display:flex;align-items:flex-end;gap:8px;height:130px;border-bottom:1px solid var(--mk-line)}
+.mk-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.mk-bar .fill{width:100%;max-width:30px;background:linear-gradient(180deg,#1b6f4c,#0f5132);
+ border-radius:3px 3px 0 0;height:0;transition:height .9s cubic-bezier(.2,.8,.2,1)}
+.mk-bar .v{font-size:9.5px;color:var(--mk-muted);margin-bottom:3px}
+.mk-bar .yr{font-size:9.5px;color:#8a959c;margin-top:6px}
+.mk-chart .src{font-size:10px;color:#9aa4ab;margin-top:12px;line-height:1.5}
+
+.mk-challenge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.mk-challenge-card{background:#fff;border:1px solid var(--mk-line);border-left:3px solid var(--mk-saffron);
+ border-radius:6px;padding:12px}
+.mk-challenge-card .ic{font-size:17px}
+.mk-challenge-card .t{font-size:12.5px;font-weight:700;margin:7px 0 3px;color:var(--mk-ink)}
+.mk-challenge-card .n{font-size:11px;color:var(--mk-muted)}
+
+.mk-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:center}
+.mk-flow-step{background:#fff;border:1px solid var(--mk-line);border-radius:8px;padding:10px 14px;
+ font-size:12px;font-weight:700;color:var(--mk-ink);text-align:center;min-width:118px}
+.mk-flow-arrow{color:#9aa4ab;font-size:15px}
+@media(max-width:600px){.mk-flow{flex-direction:column}.mk-flow-arrow{transform:rotate(90deg)}}
+
+.mk-cap-card{background:#fff;border:1px solid var(--mk-line);border-radius:8px;padding:14px;text-align:center}
+.mk-cap-card .ic{font-size:19px;margin-bottom:6px}
+.mk-cap-card h5{margin:0 0 4px;font-size:12px;color:var(--mk-ink)}
+.mk-cap-card p{margin:0;font-size:10.5px;color:var(--mk-muted);line-height:1.4}
+
+.mk-rmi-header{background:#fff;border:1px solid var(--mk-line);border-radius:10px;padding:14px 16px;margin-bottom:4px}
+.mk-rmi-header h2{margin:0 0 2px;color:var(--mk-ink)}
+.mk-badge-sim{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:800;letter-spacing:.3px;
+ padding:4px 9px;border-radius:5px;background:#fdf1e2;color:#8a5a00;border:1px solid #f0d6a6}
+
+.mk-footer{margin-top:40px;padding:26px 20px 28px;background:var(--mk-navy);color:#c7d2da;border-radius:14px 14px 0 0}
+.mk-footer h3{color:#fff;margin:0 0 4px;font-size:17px}
+.mk-footer .tag{font-size:11.5px;color:#9fb3c2;margin-bottom:16px}
+.mk-footer-links{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;margin-bottom:14px;color:#c7d2da}
+.mk-footer-note{font-size:10.5px;color:#8496a3;border-top:1px solid #24425a;padding-top:12px;margin-top:8px;line-height:1.6}
+
+.mk-reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.mk-reveal.in{opacity:1;transform:translateY(0)}
+.mk-stagger>*:nth-child(2){transition-delay:70ms}
+.mk-stagger>*:nth-child(3){transition-delay:140ms}
+.mk-stagger>*:nth-child(4){transition-delay:210ms}
+.mk-stagger>*:nth-child(5){transition-delay:280ms}
+.mk-stagger>*:nth-child(n+6){transition-delay:350ms}
+@media(prefers-reduced-motion:reduce){
+ .mk-reveal{transition:none!important;opacity:1!important;transform:none!important}
+ .mk-bar .fill{transition:none!important}
+}
+</style>
+<style>
+/* ================================================================
+   NAV / HAMBURGER / OPERATIONS TILES — visual refinement pass only.
+   Namespaced under .mk- (plus two narrow, intentional overrides:
+   header{background} and .mk-hero, both of which only affect
+   elements introduced in the previous pass). Nothing below touches
+   the global button/.card/.grid rules used by the locked screens.
+   ================================================================ */
+:root{ --mk-teal:#0e7c86; }
+
+/* header becomes deep navy instead of bright blue, per diversified palette */
+header{background:var(--mk-navy);padding:0}
+.mk-header-inner{max-width:1100px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px}
+.mk-header-brand{margin-right:auto;min-width:0}
+.mk-header-brand .brand{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.mk-nav{display:flex;align-items:center;gap:2px}
+.mk-nav-link{color:#dbe6ee;text-decoration:none;font-size:13px;font-weight:600;padding:8px 10px;
+ border-radius:6px;transition:background .15s ease,color .15s ease;white-space:nowrap}
+.mk-nav-link:hover,.mk-nav-link:focus-visible{background:#ffffff1a;color:#fff;outline:none}
+.mk-nav-link:focus-visible{outline:2px solid #fff;outline-offset:1px}
+
+.mk-ops-menu{position:relative;margin-left:8px}
+.mk-ops-btn{background:var(--mk-saffron);color:#fff;border:0;border-radius:7px;padding:9px 14px;
+ font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mk-ops-btn:hover{filter:brightness(1.07)}
+.mk-ops-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.mk-ops-dropdown{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--mk-line);
+ border-radius:10px;box-shadow:0 10px 30px #00000022;padding:6px;min-width:236px;display:none;z-index:50}
+.mk-ops-dropdown.open{display:block}
+.mk-ops-dropdown button{display:block;width:100%;text-align:left;background:transparent;color:var(--mk-ink);
+ border:0;padding:9px 10px;font-size:13px;font-weight:600;border-radius:6px;cursor:pointer}
+.mk-ops-dropdown button:hover,.mk-ops-dropdown button:focus-visible{background:#f1efe7;outline:none}
+
+.mk-hamburger{display:none;flex-direction:column;justify-content:center;gap:4px;background:transparent;
+ border:1px solid #ffffff33;border-radius:7px;width:38px;height:34px;padding:0;cursor:pointer;margin-left:4px;flex:0 0 auto}
+.mk-hamburger span{display:block;width:18px;height:2px;background:#fff;margin:0 auto;transition:transform .25s ease,opacity .2s ease}
+.mk-hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.mk-hamburger.open span:nth-child(2){opacity:0}
+.mk-hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.mk-hamburger:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+.mk-mobile-nav{display:none;flex-direction:column;background:var(--mk-navy2);padding:6px 18px 14px}
+.mk-mobile-nav.open{display:flex}
+.mk-mobile-nav a{color:#dbe6ee;text-decoration:none;font-size:14px;font-weight:600;padding:12px 2px;border-bottom:1px solid #1c3c58}
+.mk-mobile-nav a:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+.mk-mobile-ops-toggle{background:transparent;border:0;color:#dbe6ee;font-size:14px;font-weight:600;text-align:left;
+ padding:12px 2px;width:100%;cursor:pointer;border-bottom:1px solid #1c3c58}
+.mk-mobile-ops-toggle:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+.mk-mobile-ops-list{display:none;flex-direction:column;padding-left:12px}
+.mk-mobile-ops-list.open{display:flex}
+.mk-mobile-ops-list button{background:transparent;border:0;color:#c7d2da;font-size:13px;text-align:left;
+ padding:10px 2px;cursor:pointer;border-bottom:1px solid #16324880}
+.mk-mobile-ops-list button:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+
+@media(max-width:900px){ .mk-nav{display:none} .mk-hamburger{display:flex} }
+@media(min-width:901px){ .mk-mobile-nav{display:none!important} }
+@media(max-width:480px){
+ header .sub{display:none}
+ .mk-header-inner{padding:11px 14px}
+ .mk-header-brand .brand{font-size:19px}
+}
+
+/* CHANGE 1 — simplified hero: remove illustration, keep it text-led with a faint pattern only */
+.mk-hero{background:linear-gradient(160deg,var(--mk-navy),var(--mk-navy2));position:relative;overflow:hidden}
+.mk-hero::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+ background-image:repeating-linear-gradient(115deg,#ffffff0a 0 1px,transparent 1px 34px);}
+.mk-hero-content{position:relative;z-index:1;max-width:640px;padding:6px 0}
+.mk-chakra-wm{opacity:.045}
+
+/* CHANGE 3 — Operations hub tiles (same onclick handlers, new presentation only) */
+.mk-ops-intro h2{margin-bottom:2px}
+.mk-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:16px}
+.mk-tile{display:flex;align-items:flex-start;gap:12px;text-align:left;background:#fff;
+ border:1px solid var(--mk-line);border-top:3px solid var(--mk-line);border-radius:10px;padding:16px;
+ cursor:pointer;font:inherit;color:var(--mk-ink);min-height:88px;width:100%;
+ transition:box-shadow .2s ease,transform .2s ease}
+.mk-tile:hover{box-shadow:0 6px 18px #00000014;transform:translateY(-2px)}
+.mk-tile:focus-visible{outline:2px solid var(--mk-navy);outline-offset:2px}
+.mk-tile-ic{font-size:20px;flex:0 0 auto;width:40px;height:40px;border-radius:9px;
+ display:flex;align-items:center;justify-content:center;background:#f1efe7}
+.mk-tile-body{display:flex;flex-direction:column;gap:3px}
+.mk-tile-title{font-weight:700;font-size:14px;color:var(--mk-ink)}
+.mk-tile-desc{font-size:12px;color:var(--mk-muted);line-height:1.4}
+.mk-tile-worker{border-top-color:var(--mk-green)}.mk-tile-worker .mk-tile-ic{background:#e7f3ea;color:var(--mk-green)}
+.mk-tile-officer{border-top-color:#3b5a75}.mk-tile-officer .mk-tile-ic{background:#e8edf2;color:#3b5a75}
+.mk-tile-admin{border-top-color:var(--mk-charcoal)}.mk-tile-admin .mk-tile-ic{background:#ececea;color:var(--mk-charcoal)}
+.mk-tile-compliance{border-top-color:var(--mk-saffron)}.mk-tile-compliance .mk-tile-ic{background:#fbeee0;color:var(--mk-saffron)}
+.mk-tile-assistant{border-top-color:var(--mk-teal)}.mk-tile-assistant .mk-tile-ic{background:#e3f1f0;color:var(--mk-teal)}
+.mk-tile-rmi{border-top-color:#154a63}.mk-tile-rmi .mk-tile-ic{background:#e2edf1;color:#154a63}
+
+/* offset anchored scroll targets so the sticky header never covers them */
+#home,.mk-section{scroll-margin-top:86px}
+
+@media(prefers-reduced-motion:reduce){ .mk-tile{transition:none} }
+</style>
+<style>
+/* ================================================================
+   RESPONSIVE LAYOUT + MAP FIXES — presentation only.
+   No markup, handlers, options, filters or settings are changed.
+   ================================================================ */
+:root{--mk-page-max:1480px;--mk-gutter:clamp(14px,2.4vw,40px)}
+
+/* ---------- Fluid page width (was fixed at 1100px) ---------- */
+main{max-width:var(--mk-page-max);padding:clamp(14px,2vw,28px) var(--mk-gutter) 8px;width:100%}
+.mk-header-inner{max-width:var(--mk-page-max);padding-left:var(--mk-gutter);padding-right:var(--mk-gutter)}
+.mk-footer{max-width:var(--mk-page-max);margin-left:auto;margin-right:auto;padding-left:var(--mk-gutter);padding-right:var(--mk-gutter)}
+.mk-section .lead{max-width:860px}
+
+/* ---------- Header polish ---------- */
+header{box-shadow:0 2px 14px #00000030;backdrop-filter:saturate(1.2)}
+.mk-nav-link{font-size:13.5px;padding:8px 12px}
+.mk-nav{gap:4px}
+
+/* ---------- Home: hero ---------- */
+.mk-hero{padding:clamp(24px,4vw,56px) clamp(20px,4vw,56px);border-radius:18px;
+  background:
+   radial-gradient(900px 340px at 88% 0%, #1f5f7f55, transparent 70%),
+   linear-gradient(160deg,var(--mk-navy),var(--mk-navy2))}
+.mk-hero h1{font-size:clamp(30px,4.2vw,52px);letter-spacing:.3px}
+.mk-hero .tagline{font-size:clamp(14.5px,1.5vw,19px)}
+.mk-hero .desc{font-size:clamp(13px,1.15vw,15.5px);max-width:720px}
+.mk-hero-content{max-width:820px}
+.mk-chakra-wm{width:clamp(220px,30vw,460px);height:clamp(220px,30vw,460px);right:clamp(-30px,2vw,40px);opacity:.07}
+
+/* ---------- Home: laptop layout uses the full width ---------- */
+@media(min-width:1100px){
+  #home.active{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:28px;align-items:start}
+  #home.active>*{grid-column:1/-1}
+  #home.active>.card{grid-column:span 5;margin:34px 0;padding:22px}
+  #home.active>#mkAbout{grid-column:span 7}
+  .mk-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .mk-tile{min-height:104px;padding:20px}
+  .mk-tile-title{font-size:15px}.mk-tile-desc{font-size:12.5px}
+  .mk-tile-ic{width:46px;height:46px;font-size:22px}
+  .mk-about-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mk-cap-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .mk-challenge-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .mk-charts-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mk-stats-grid .num{font-size:40px}
+  .mk-flow{flex-wrap:nowrap}
+  .mk-flow-step{flex:1 1 0;min-width:0;padding:12px 8px}
+}
+@media(min-width:1500px){ .mk-tiles{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.mk-tile,.mk-about-card,.mk-chart,.mk-cap-card,.mk-challenge-card{box-shadow:0 1px 3px #0000000a}
+.mk-about-card:hover,.mk-cap-card:hover,.mk-chart:hover{box-shadow:0 8px 22px #00000012}
+.mk-about-card,.mk-cap-card,.mk-chart{transition:box-shadow .2s ease}
+
+/* ---------- Other screens (forms, tables): readable width, centred ---------- */
+.screen:not(#home):not(#regionalIntel){max-width:1240px;margin-left:auto;margin-right:auto}
+@media(min-width:1100px){
+  .screen:not(#home):not(#regionalIntel) .grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+}
+table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(min-width:700px){table{display:table}}
+
+/* ---------- Regional Mine Intelligence: layout ---------- */
+#regionalIntel{max-width:none!important}
+.rmi{padding:clamp(12px,1.6vw,24px);border-radius:18px;--rmi-map-h:clamp(340px,58vh,520px)}
+.rmi-body{grid-template-columns:minmax(0,1fr)!important}
+.rmi-mapwrap{isolation:isolate;min-height:var(--rmi-map-h);border-radius:14px}
+.rmi-map{height:var(--rmi-map-h);min-height:var(--rmi-map-h)}
+.rmi-map.leaflet-container{background:#dfe5ea;font-family:Arial,sans-serif}
+.leaflet-control-attribution{font-size:10px!important}
+.rmi-summary{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.rmi-stat{padding:9px 8px}
+.rmi-stat .l{font-size:9.5px;line-height:1.25}
+.rmi-stat .n{font-size:clamp(20px,2.2vw,28px)}
+.rmi-controls input,.rmi-controls select{min-width:0;flex:1 1 calc(50% - 8px)}
+.rmi-controls input{flex-basis:100%}
+.rmi-controls button{flex:1 1 100%}
+.rmi-legend{max-width:calc(100% - 20px);flex-direction:row;flex-wrap:wrap;gap:4px 12px}
+.rmi-top h2{font-size:clamp(18px,2vw,26px)}
+
+@media(min-width:600px){
+  .rmi-summary{gap:10px}.rmi-stat{padding:12px 14px}.rmi-stat .l{font-size:11px}
+  .rmi-controls input{flex-basis:100%}
+  .rmi-controls select{flex:1 1 calc(33.3% - 8px)}
+  .rmi-controls button{flex:0 0 auto}
+}
+@media(min-width:860px){
+  .rmi{--rmi-map-h:clamp(460px,64vh,640px)}
+  .rmi-body{grid-template-columns:minmax(0,1fr) minmax(330px,390px)!important;align-items:stretch}
+  .rmi-panel{max-height:var(--rmi-map-h)}
+  .rmi-legend{flex-direction:column;flex-wrap:nowrap;gap:4px}
+}
+@media(min-width:1100px){
+  .rmi{--rmi-map-h:clamp(520px,calc(100vh - 340px),820px)}
+  .rmi-summary{grid-template-columns:repeat(8,minmax(0,1fr))}
+  .rmi-controls{flex-wrap:nowrap}
+  .rmi-controls input{flex:2 1 0;min-width:180px}
+  .rmi-controls select{flex:1 1 0;min-width:0}
+  .rmi-controls button{flex:0 0 auto;white-space:nowrap}
+  .rmi-body{grid-template-columns:minmax(0,1fr) 420px!important}
+}
+@media(max-width:600px){
+  .rmi-legend{font-size:10px;padding:6px 8px;left:6px;bottom:6px;gap:3px 9px}
+  .rmi-live{font-size:12px;padding:6px 10px}
+    #mkOperations .mk-tiles{grid-template-columns:1fr}
+  .mk-hero{border-radius:14px}
+}
+/* the fixed OFFLINE/ONLINE pill should never sit on top of the map controls */
+.offline{bottom:10px;right:10px;font-size:12px;padding:7px 11px}
+</style>
+<style id="mki-styles">
+/* ===== Officer incident workflow (scoped: .mki-*) ===== */
+.mki-mini{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px dashed #d5dcd9;font-size:12.5px;color:#66736e}
+.mki-mini button{padding:8px 12px;font-size:13px;background:#e7efec;color:#7a2018;border:1px solid #e3c9c6}
+.mki-mini button:disabled{opacity:.45}
+.mki-mini label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.mki-mini input[type=checkbox]{width:auto;margin:0}
+.mki-mini select{width:auto;margin:0;padding:6px 8px;font-size:12.5px}
+.mki-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.06em;background:#fff3d6;color:#8a5a00;border:1px solid #efd9a0}
+.mki-chip.sim{background:#1d2a3d;color:#f0c46a;border-color:#3a4c68}
+.mki-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.mki-zone{border-radius:10px;padding:10px;background:#eef7f4;border:1px solid #d5e8df;text-align:center}
+.mki-zone b{display:block;font-size:13px}.mki-zone span{font-size:11px;font-weight:800;letter-spacing:.05em;color:#087443}
+.mki-zone small{display:block;color:#66736e;font-size:11px;margin-top:2px}
+.mki-zone.evac{background:#fde8e7;border-color:#b4322a;animation:mkiPulseBorder 1.6s ease-in-out infinite}
+.mki-zone.evac span{color:#b4322a}
+@keyframes mkiPulseBorder{0%,100%{box-shadow:0 0 0 0 #b4322a55}50%{box-shadow:0 0 0 5px #b4322a00}}
+/* active incident panel */
+.mki-active{background:#0f1b2b;color:#e8eef6;border-left:5px solid #b4322a;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 3px 15px #00000030}
+.mki-active h3{color:#ff8b82;margin:0 0 6px;letter-spacing:.03em}
+.mki-active .mki-sub{color:#9fb0c7;font-size:13px}
+.mki-active .mki-nums{display:flex;flex-wrap:wrap;gap:10px 22px;margin:10px 0}
+.mki-active .mki-nums b{font-size:22px;display:block}.mki-active .mki-nums span{font-size:11.5px;color:#9fb0c7}
+.mki-active button{margin-top:4px}
+/* overlay */
+#mkiOverlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(6,11,19,.78);backdrop-filter:blur(2px)}
+#mkiOverlay.on{display:flex;animation:mkiFade .25s ease-out}
+.emergency-mode> :not(#mkiOverlay){filter:blur(2px);pointer-events:none;user-select:none}
+@keyframes mkiFade{from{opacity:0}to{opacity:1}}
+.mki-modal{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#101a2a;color:#e8eef6;border:1px solid #2c3d57;border-top:5px solid #b4322a;border-radius:14px;padding:24px 22px;text-align:center;box-shadow:0 20px 60px #000a;animation:mkiIn .35s cubic-bezier(.2,.9,.3,1.1)}
+.mki-modal.mki-flow{width:min(1240px,calc(100vw - 32px));height:min(92vh,900px);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;padding:14px 18px;text-align:left}
+.mki-global-head{flex:none;text-align:center}.mki-global-board{text-align:left;min-height:0}.mki-flow .mki-global-board{flex:1;overflow:auto;margin-top:8px}
+.mki-flow #alert,.mki-flow #alarm,.mki-flow #headcount{max-width:none;height:100%;margin:0}.mki-flow .mki-board{height:100%;overflow:auto;margin:0;padding:clamp(12px,1.5vw,20px)}
+.mki-flow #alert>.back,.mki-flow #headcount>.back{display:none}
+.mki-global-status{font-weight:800;letter-spacing:.06em;color:#f0c46a;margin:8px 0}
+.mki-global-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;position:sticky;top:0;z-index:2;background:#101a2a;padding:5px 0}.mki-global-actions button{width:auto;padding:12px 18px}
+.mki-flow .mki-global-head{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+.mki-flow .mki-global-head .mki-beacon,.mki-flow #mkiDetectedInfo,.mki-flow #mkiDesc{display:none}
+.mki-flow .mki-global-head h2{font-size:18px;white-space:nowrap}
+.mki-flow .mki-global-head .mki-cond{margin:0 auto 0 0}.mki-flow .mki-global-status{margin:0;white-space:nowrap}
+.mki-demo-trigger{background:#8f2420;border:1px solid #ffffff55;padding:8px 11px;font-size:12px;white-space:nowrap}
+@keyframes mkiIn{from{transform:translateY(-24px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.mki-beacon{width:54px;height:54px;margin:0 auto 10px;border-radius:50%;background:#b4322a;display:flex;align-items:center;justify-content:center;font-size:28px;animation:mkiBeacon 1.2s ease-in-out infinite}
+@keyframes mkiBeacon{0%,100%{box-shadow:0 0 0 0 #b4322a99}70%{box-shadow:0 0 0 16px #b4322a00}}
+.mki-modal h2{margin:4px 0 2px;color:#ff8b82;font-size:22px;letter-spacing:.05em}
+.mki-modal .mki-cond{font-weight:800;color:#f0c46a;letter-spacing:.06em;font-size:13px;margin-bottom:12px}
+.mki-loc{margin:12px auto;padding:10px;border-radius:10px;background:#0b1422;border:1px solid #22324a;line-height:1.6}
+.mki-modal p{margin:8px 0;color:#c4d0e0}
+.mki-modal .mki-req{font-weight:800;color:#fff;margin:12px 0}
+.mki-modal button{width:100%;min-height:50px;font-size:16px;margin-top:8px}
+.mki-modal button.mki-verify{background:#b4322a;letter-spacing:.06em}
+.mki-modal button.mki-mute{background:transparent;border:1px solid #3a4c68;color:#c4d0e0;min-height:44px;font-size:14px}
+/* boards */
+.mki-board{background:#0f1b2b;color:#e8eef6;border-radius:16px;padding:clamp(14px,2.4vw,24px);margin:12px 0;box-shadow:0 3px 15px #00000030}
+.mki-board h2{margin:0 0 4px}.mki-board h3{margin:0 0 10px;font-size:15px;color:#f0c46a;letter-spacing:.04em}
+.mki-board .mki-muted{color:#9fb0c7;font-size:13px}
+.mki-cols{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+@media(min-width:900px){.mki-cols{grid-template-columns:1fr 1fr;align-items:start}}
+.mki-panel{background:#0b1422;border:1px solid #22324a;border-radius:12px;padding:14px}
+.mki-kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #1c2b41;font-size:14px}
+.mki-kv:last-child{border-bottom:0}.mki-kv span:first-child{color:#9fb0c7}.mki-kv b{text-align:right}
+.mki-sens{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.mki-sc{background:#0f1b2b;border:1px solid #22324a;border-radius:10px;padding:10px}
+.mki-sc small{color:#9fb0c7;display:block;font-size:11.5px}.mki-sc b{font-size:19px}
+.mki-sc i{display:block;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.06em;margin-top:2px}
+.mki-ok{color:#4fc48a}.mki-warn{color:#e5b040}.mki-crit{color:#ff8b82}
+.mki-det{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;background:#0f1b2b;border:1px solid #22324a;margin:6px 0;font-size:14px}
+.mki-det.viol{border-color:#7a2a26}.mki-det .c{font-family:Consolas,monospace}
+.mki-note{font-size:12px;color:#9fb0c7;margin-top:8px;line-height:1.5}
+.mki-decide{margin-top:14px;padding:14px;border-radius:12px;background:#111f33;border:1px solid #2c3d57}
+.mki-decide button{width:100%;min-height:50px;font-size:15px;margin-top:8px}
+.mki-decide button.mki-go{background:#b4322a}
+.mki-decide button.mki-alt{background:transparent;color:#c4d0e0;border:1px solid #3a4c68;min-height:44px;font-size:14px}
+.mki-banner{display:flex;align-items:center;gap:10px;background:#3a1512;border:1px solid #b4322a;border-radius:10px;padding:12px 14px;margin:12px 0;font-weight:800;letter-spacing:.05em;color:#ffb3ad}
+.mki-banner .dot{width:12px;height:12px;border-radius:50%;background:#e5483d;flex:none;animation:mkiBeacon 1.2s infinite}
+.mki-banner.done{background:#0f2a1e;border-color:#2f9e6b;color:#8de0b6}.mki-banner.done .dot{background:#2f9e6b;animation:none}
+.mki-banner.warnb{background:#33260a;border-color:#d9a11e;color:#f4cf7a}.mki-banner.warnb .dot{background:#e5b040}
+.mki-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.mki-cards .mki-sc b{font-size:28px}
+.mki-bar{height:14px;background:#1c2b41;border-radius:999px;overflow:hidden;margin:6px 0}
+.mki-bar div{height:100%;background:linear-gradient(90deg,#2f9e6b,#4fc48a);transition:width .8s ease}
+.mki-phases{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.mki-ph{flex:1 1 130px;font-size:12px;padding:8px;border-radius:8px;background:#0b1422;border:1px solid #22324a;color:#7d8ea8}
+.mki-ph.on{border-color:#d9a11e;color:#f4cf7a}.mki-ph.done{border-color:#2f9e6b;color:#8de0b6}
+.mki-toks{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.mki-tok{font-family:Consolas,monospace;font-size:11px;padding:3px 6px;border-radius:6px;background:#1c2b41;color:#9fb0c7;border:1px solid #22324a}
+.mki-tok.m{background:#0f2a1e;color:#8de0b6;border-color:#2f9e6b}.mki-tok.e{background:#33260a;color:#f4cf7a;border-color:#d9a11e}
+.mki-tok.u{background:#3a1512;color:#ffb3ad;border-color:#b4322a}
+.mki-result{padding:14px;border-radius:10px;margin:12px 0;font-weight:700}
+.mki-result.ok{background:#0f2a1e;border:1px solid #2f9e6b;color:#8de0b6}
+.mki-result.bad{background:#3a1512;border:1px solid #b4322a;color:#ffb3ad}
+.mki-wrap{overflow-x:auto}
+.mki-tbl{width:100%;border-collapse:collapse;font-size:14px}
+.mki-tbl th,.mki-tbl td{padding:10px 8px;border-bottom:1px solid #e3e8e6;text-align:left}
+.mki-tbl td.n,.mki-tbl th.n{text-align:right}
+.mki-tbl tr.evac td{background:#fde8e7}
+.mki-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.mki-btns button{min-height:46px}
+@media(max-width:640px){
+  #mkiOverlay{padding:0;align-items:stretch}
+  .mki-modal,.mki-modal.mki-flow{width:100%;height:100vh;max-height:100vh;border-radius:0;display:flex;flex-direction:column;justify-content:flex-start;border-top-width:6px}
+  .mki-flow .mki-global-head{flex-wrap:wrap;gap:4px 10px}.mki-flow .mki-global-head h2{font-size:16px}
+ .mki-strip{grid-template-columns:repeat(2,1fr)}
+ .mki-btns button{flex:1 1 100%}
+}
+@media(prefers-reduced-motion:reduce){.mki-beacon,.mki-banner .dot,.mki-zone.evac,.mki-modal{animation:none}}
+</style>
+</head>
+<body>
+<div class="mk-govstrip">
+  <span class="mk-tricolor" aria-hidden="true"><span></span><span></span><span></span></span>
+  <span>Digital Mine Safety Prototype · Built for India's Mining Sector</span>
+</div>
+<header>
+  <div class="mk-header-inner">
+    <div class="mk-header-brand">
+      <div class="brand">⛏ MineKawach <span style="font-size:13px;font-weight:400;opacity:.7">v3</span></div>
+      <div class="sub">Smart Safety, Workforce & Compliance Platform — Enhanced Prototype</div>
+    </div>
+    <nav class="mk-nav" aria-label="Primary">
+      <a href="#home" class="mk-nav-link" data-mk-scroll="home">Home</a>
+      <a href="#mkAbout" class="mk-nav-link" data-mk-scroll="mkAbout">About</a>
+      <a href="#mkSector" class="mk-nav-link" data-mk-scroll="mkSector">Mining Sector</a>
+      <a href="#mkStats" class="mk-nav-link" data-mk-scroll="mkStats">Safety Statistics</a>
+      <a href="#regionalIntel" class="mk-nav-link" data-mk-goto="regionalIntel">Mine Intelligence</a>
+    </nav>
+    <div class="mk-ops-menu">
+      <button type="button" class="mk-ops-btn" id="mkOpsBtn" aria-haspopup="true" aria-expanded="false">Operations ▾</button>
+      <div class="mk-ops-dropdown" id="mkOpsDropdown" role="menu">
+        <button role="menuitem" onclick="show('worker')">👷 Worker Portal</button>
+        <button role="menuitem" onclick="show('officer')">🧑‍💼 Officer / Inspector</button>
+        <button role="menuitem" onclick="show('admin')">🏢 Management / Admin</button>
+        <button role="menuitem" onclick="show('compliance')">⚖️ DGMS Compliance</button>
+        <button role="menuitem" onclick="show('assistant')">🗣️ Sahayak</button>
+        <button role="menuitem" onclick="show('regionalIntel');RMI.open()">🗺️ Regional Mine Intelligence</button>
+      </div>
+    </div>
+    <button type="button" class="mki-demo-trigger" onclick="startIncident()" aria-label="Start demo incident">🚨 Demo Incident</button>
+    <button type="button" class="mk-hamburger" id="mkHamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mkMobileNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<div class="mk-mobile-nav" id="mkMobileNav">
+  <a href="#home" data-mk-scroll="home">Home</a>
+  <a href="#mkAbout" data-mk-scroll="mkAbout">About</a>
+  <a href="#mkSector" data-mk-scroll="mkSector">Mining Sector</a>
+  <a href="#mkStats" data-mk-scroll="mkStats">Safety Statistics</a>
+  <a href="#regionalIntel" data-mk-goto="regionalIntel">Mine Intelligence</a>
+  <button type="button" class="mk-mobile-ops-toggle" id="mkMobileOpsToggle" aria-expanded="false">Operations ▾</button>
+  <div class="mk-mobile-ops-list" id="mkMobileOpsList">
+    <button onclick="show('worker')">👷 Worker Portal</button>
+    <button onclick="show('officer')">🧑‍💼 Officer / Inspector</button>
+    <button onclick="show('admin')">🏢 Management / Admin</button>
+    <button onclick="show('compliance')">⚖️ DGMS Compliance</button>
+    <button onclick="show('assistant')">🗣️ Sahayak</button>
+    <button onclick="show('regionalIntel');RMI.open()">🗺️ Regional Mine Intelligence</button>
+  </div>
+</div>
+
+<div id="status" class="offline">OFFLINE MODE</div>
+
+<main>
+<!-- ============ HOME ============ -->
+<section id="home" class="screen active">
+  <div class="mk-hero mk-reveal">
+    <svg class="mk-chakra-wm" viewBox="0 0 100 100" fill="none" stroke="#ffffff" stroke-width="1">
+      <circle cx="50" cy="50" r="46"/>
+      <circle cx="50" cy="50" r="3" fill="#ffffff" stroke="none"/>
+      <g>
+        <!-- 24 spokes -->
+        <line x1="50" y1="50" x2="50" y2="4"/><line x1="50" y1="50" x2="65.6" y2="7.2"/>
+        <line x1="50" y1="50" x2="79.6" y2="15.9"/><line x1="50" y1="50" x2="89.9" y2="29.5"/>
+        <line x1="50" y1="50" x2="95.6" y2="45.7"/><line x1="50" y1="50" x2="95.6" y2="54.3"/>
+        <line x1="50" y1="50" x2="89.9" y2="70.5"/><line x1="50" y1="50" x2="79.6" y2="84.1"/>
+        <line x1="50" y1="50" x2="65.6" y2="92.8"/><line x1="50" y1="50" x2="50" y2="96"/>
+        <line x1="50" y1="50" x2="34.4" y2="92.8"/><line x1="50" y1="50" x2="20.4" y2="84.1"/>
+        <line x1="50" y1="50" x2="10.1" y2="70.5"/><line x1="50" y1="50" x2="4.4" y2="54.3"/>
+        <line x1="50" y1="50" x2="4.4" y2="45.7"/><line x1="50" y1="50" x2="10.1" y2="29.5"/>
+        <line x1="50" y1="50" x2="20.4" y2="15.9"/><line x1="50" y1="50" x2="34.4" y2="7.2"/>
+      </g>
+    </svg>
+    <div class="mk-hero-content">
+        <h1>MineKawach</h1>
+        <div class="tagline">Integrated Digital Mine Safety &amp; Workforce Monitoring Platform</div>
+        <div class="desc">A unified prototype connecting worker safety, PPE compliance, statutory registers, emergency response and regional mine intelligence into one digital system.</div>
+        <div class="pillline">Safety • Compliance • Workforce • Emergency Response • Mine Intelligence</div>
+    </div>
+  </div>
+  <div class="mk-section mk-ops-intro mk-reveal" id="mkOperations">
+    <h2>MineKawach Operations</h2>
+    <p class="lead">Select the workspace you need</p>
+    <div class="mk-tiles mk-stagger">
+      <button class="mk-tile mk-tile-worker mk-reveal" onclick="show('worker')">
+        <span class="mk-tile-ic" aria-hidden="true">👷</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">Worker Portal</span><span class="mk-tile-desc">Attendance, PPE and worker safety</span></span>
+      </button>
+      <button class="mk-tile mk-tile-officer mk-reveal" onclick="show('officer')">
+        <span class="mk-tile-ic" aria-hidden="true">🧑‍💼</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">Officer / Inspector</span><span class="mk-tile-desc">Monitoring, alerts and field oversight</span></span>
+      </button>
+      <button class="mk-tile mk-tile-admin mk-reveal" onclick="show('admin')">
+        <span class="mk-tile-ic" aria-hidden="true">🏢</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">Management / Admin</span><span class="mk-tile-desc">Workforce and operational management</span></span>
+      </button>
+      <button class="mk-tile mk-tile-compliance mk-reveal" onclick="show('compliance')">
+        <span class="mk-tile-ic" aria-hidden="true">⚖️</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">DGMS Compliance</span><span class="mk-tile-desc">Statutory requirements and audit readiness</span></span>
+      </button>
+      <button class="mk-tile mk-tile-assistant mk-reveal" onclick="show('assistant')">
+        <span class="mk-tile-ic" aria-hidden="true">🗣️</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">Sahayak</span><span class="mk-tile-desc">Multilingual safety assistance</span></span>
+      </button>
+      <button class="mk-tile mk-tile-rmi mk-reveal" onclick="show('regionalIntel');RMI.open()">
+        <span class="mk-tile-ic" aria-hidden="true">🗺️</span>
+        <span class="mk-tile-body"><span class="mk-tile-title">Regional Mine Intelligence</span><span class="mk-tile-desc">Regional mine status and workforce visibility</span></span>
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Prototype capabilities</h3>
+    <div class="row"><span>QR identity + biometric face-match + geo-fenced attendance</span><span class="badge">Working</span></div>
+    <div class="row"><span>PPE gate verification (helmet, shoes, gloves, self-rescuer, jacket)</span><span class="badge">Working</span></div>
+    <div class="row"><span>HEMM driver fatigue check (8-hr rule, CMR)</span><span class="badge">Working</span></div>
+    <div class="row"><span>Token-based underground headcount (evacuation)</span><span class="badge">Working</span></div>
+    <div class="row"><span>SHA-256 tamper-evident audit trail</span><span class="badge">Working</span></div>
+    <div class="row"><span>Offline queue with real sync to dashboards</span><span class="badge">Working</span></div>
+    <div class="row"><span>Multilingual AI voice assistant</span><span class="badge yellow">Simulated</span></div>
+  </div>
+
+  <!-- ============ WHY MINEKAWACH (additive) ============ -->
+  <div class="mk-section mk-reveal" id="mkAbout">
+    <h2>Why MineKawach</h2>
+    <p class="lead">A single digital system connecting worker-level safety with mine-level and regional oversight.</p>
+    <div class="mk-about-grid mk-stagger">
+      <div class="mk-about-card mk-reveal"><div class="ic">👷</div><h4>Worker Safety</h4><p>Digital workforce presence, PPE verification, emergency headcount and worker reporting.</p></div>
+      <div class="mk-about-card mk-reveal"><div class="ic">🗺️</div><h4>Mine Intelligence</h4><p>Regional visibility of mines, operational status, workforce and safety indicators.</p></div>
+      <div class="mk-about-card mk-reveal"><div class="ic">⚖️</div><h4>Compliance</h4><p>Digital representation of statutory registers, inspections and compliance indicators.</p></div>
+      <div class="mk-about-card mk-reveal"><div class="ic">🚨</div><h4>Emergency Readiness</h4><p>Faster incident reporting, alarm activation, evacuation headcount and response coordination.</p></div>
+      <div class="mk-about-card mk-reveal"><div class="ic">📊</div><h4>Data-Driven Safety</h4><p>Consolidated operational information can help safety personnel identify patterns and prioritize attention.</p></div>
+    </div>
+  </div>
+
+  <!-- ============ INDIA'S MINING SECTOR (additive) ============ -->
+  <div class="mk-section mk-reveal" id="mkSector">
+    <h2>India's Mining Sector</h2>
+    <p class="lead">Coal remains central to India's energy and industrial base, produced across a large, geographically distributed underground and opencast mining workforce where occupational safety and continuous monitoring are critical.</p>
+    <div class="mk-stats">
+      <div class="mk-stats-grid mk-stagger">
+        <div class="mk-reveal"><div class="num" data-target="1047.57" data-decimals="2">0.00</div><div class="lbl">Million Tonnes — Coal Production, FY 2024–25 (Provisional)</div></div>
+        <div class="mk-reveal"><div class="num" data-target="4.99" data-decimals="2" data-suffix="%">0.00%</div><div class="lbl">Growth over FY 2023–24 (997.83 MT)</div></div>
+        <div class="mk-reveal"><div class="num" data-target="226" data-decimals="0">0</div><div class="lbl">Coal &amp; Lignite Mine Deaths, 2020–2024</div></div>
+      </div>
+      <div class="mk-source">Source: Ministry of Coal, Government of India — PIB press release, 1 Apr 2025; Rajya Sabha Unstarred Question reply, 17 Mar 2025.</div>
+    </div>
+  </div>
+
+  <!-- ============ MINING SAFETY AT A GLANCE (additive) ============ -->
+  <div class="mk-section mk-reveal" id="mkStats">
+    <h2>Mining Safety at a Glance</h2>
+    <p class="lead">Official production and safety statistics, shown for public context.</p>
+    <div class="mk-charts-grid">
+      <div class="mk-chart mk-reveal">
+        <h4>Coal Production Trend</h4>
+        <div class="period">FY 2020–21 to FY 2024–25 (MT) · FY24 &amp; FY25 provisional</div>
+        <div class="mk-bars">
+          <div class="mk-bar"><span class="v">716</span><div class="fill" data-h="82"></div><span class="yr">20–21</span></div>
+          <div class="mk-bar"><span class="v">778</span><div class="fill" data-h="89"></div><span class="yr">21–22</span></div>
+          <div class="mk-bar"><span class="v">893</span><div class="fill" data-h="102"></div><span class="yr">22–23</span></div>
+          <div class="mk-bar"><span class="v">998</span><div class="fill" data-h="114"></div><span class="yr">23–24</span></div>
+          <div class="mk-bar"><span class="v">1048</span><div class="fill" data-h="120"></div><span class="yr">24–25</span></div>
+        </div>
+        <div class="src">Source: Ministry of Coal, Government of India (PIB)</div>
+      </div>
+      <div class="mk-chart mk-reveal">
+        <h4>Coal &amp; Lignite Mine Deaths</h4>
+        <div class="period">Calendar years 2020–2024</div>
+        <div class="mk-bars">
+          <div class="mk-bar"><span class="v">53</span><div class="fill" data-h="120"></div><span class="yr">2020</span></div>
+          <div class="mk-bar"><span class="v">51</span><div class="fill" data-h="116"></div><span class="yr">2021</span></div>
+          <div class="mk-bar"><span class="v">28</span><div class="fill" data-h="63"></div><span class="yr">2022</span></div>
+          <div class="mk-bar"><span class="v">41</span><div class="fill" data-h="93"></div><span class="yr">2023</span></div>
+          <div class="mk-bar"><span class="v">53</span><div class="fill" data-h="120"></div><span class="yr">2024</span></div>
+        </div>
+        <div class="src">Source: Ministry of Coal, GoI — Rajya Sabha reply, 17 Mar 2025</div>
+      </div>
+      <div class="mk-chart mk-reveal">
+        <h4>Fatal Accidents in Coal Mines</h4>
+        <div class="period">Calendar years 2019–2023</div>
+        <div class="mk-bars">
+          <div class="mk-bar"><span class="v">51</span><div class="fill" data-h="120"></div><span class="yr">2019</span></div>
+          <div class="mk-bar"><span class="v">48</span><div class="fill" data-h="113"></div><span class="yr">2020</span></div>
+          <div class="mk-bar"><span class="v">43</span><div class="fill" data-h="101"></div><span class="yr">2021</span></div>
+          <div class="mk-bar"><span class="v">24</span><div class="fill" data-h="56"></div><span class="yr">2022</span></div>
+          <div class="mk-bar"><span class="v">37</span><div class="fill" data-h="87"></div><span class="yr">2023</span></div>
+        </div>
+        <div class="src">Source: Ministry of Coal, GoI — Rajya Sabha reply, 29 Jul 2024</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ THE SAFETY CHALLENGE (additive) ============ -->
+  <div class="mk-section mk-reveal">
+    <h2>The Safety Challenge</h2>
+    <p class="lead">Mining safety is an ongoing operational responsibility. Fatal accidents in coal mines by cause, Jan–Jun 2024 (provisional).</p>
+    <div class="mk-challenge-grid mk-stagger">
+      <div class="mk-challenge-card mk-reveal"><div class="ic">⛰️</div><div class="t">Ground Movement</div><div class="n">2 fatal accidents · 2 fatalities</div></div>
+      <div class="mk-challenge-card mk-reveal"><div class="ic">🚛</div><div class="t">Transportation Machinery</div><div class="n">6 fatal accidents · 6 fatalities</div></div>
+      <div class="mk-challenge-card mk-reveal"><div class="ic">⚙️</div><div class="t">Other Machinery</div><div class="n">3 fatal accidents · 3 fatalities</div></div>
+      <div class="mk-challenge-card mk-reveal"><div class="ic">⬇️</div><div class="t">Falls</div><div class="n">6 fatal accidents · 7 fatalities</div></div>
+      <div class="mk-challenge-card mk-reveal"><div class="ic">🔥</div><div class="t">Fire, Explosion &amp; Other Hazards</div><div class="n">4 fatal accidents · 6 fatalities</div></div>
+    </div>
+    <div class="mk-source" style="text-align:left;color:#8a959c">Source: DGMS Bulletin, Jan–Jun 2024 (provisional) — coal mines only.</div>
+  </div>
+
+  <!-- ============ HOW MINEKAWACH HELPS (additive) ============ -->
+  <div class="mk-section mk-reveal">
+    <h2>From Worker-Level Safety to Regional Mine Intelligence</h2>
+    <div class="mk-flow mk-stagger">
+      <div class="mk-flow-step mk-reveal">👷 Worker</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">▣ Digital Check-in</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">🦺 PPE &amp; Safety</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">🗺️ Mine Monitoring</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">⚖️ Compliance</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">🚨 Emergency Response</div><div class="mk-flow-arrow">→</div>
+      <div class="mk-flow-step mk-reveal">📊 Management Intelligence</div>
+    </div>
+  </div>
+
+  <!-- ============ PLATFORM CAPABILITIES (additive) ============ -->
+  <div class="mk-section mk-reveal">
+    <h2>Platform Capabilities</h2>
+    <div class="mk-cap-grid mk-stagger">
+      <div class="mk-cap-card mk-reveal"><div class="ic">👷</div><h5>Workforce Monitoring</h5><p>Digital check-in and shift presence.</p></div>
+      <div class="mk-cap-card mk-reveal"><div class="ic">🦺</div><h5>PPE Verification</h5><p>Gate-level safety equipment checks.</p></div>
+      <div class="mk-cap-card mk-reveal"><div class="ic">📣</div><h5>Emergency Headcount</h5><p>Token-based evacuation muster.</p></div>
+      <div class="mk-cap-card mk-reveal"><div class="ic">📝</div><h5>Complaint Reporting</h5><p>Multilingual worker issue reporting.</p></div>
+      <div class="mk-cap-card mk-reveal"><div class="ic">⚖️</div><h5>Statutory Compliance</h5><p>DGMS-aligned compliance matrix.</p></div>
+      <div class="mk-cap-card mk-reveal"><div class="ic">🗺️</div><h5>Regional Mine Intelligence</h5><p>Multi-mine operational visibility.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKER ============ -->
+<section id="worker" class="screen">
+  <button class="secondary back" onclick="show('home')">← Back</button>
+  <h2>Worker Portal</h2>
+  <div class="card" id="checkinCard">
+    <h3>Shift Check-in</h3>
+    <div id="checkinSteps" class="muted">Complete each step to enter the mine.</div>
+    <div style="margin-top:10px">
+      <button id="btnQR" onclick="workerScan()">▣ 1. Scan Worker QR</button>
+    </div>
+    <div id="workerScanResult"></div>
+  </div>
+  <div id="workerDash" style="display:none">
+    <div class="grid">
+      <div class="card"><div class="stat" id="wId">—</div><div class="muted">Worker ID</div></div>
+      <div class="card"><div class="stat" id="attStat">Absent</div><div class="muted">Attendance</div></div>
+      <div class="card"><div class="stat">Mine A</div><div class="muted">Assigned Mine</div></div>
+      <div class="card"><div class="stat" id="wZone">Zone C</div><div class="muted">Assigned Zone</div></div>
+    </div>
+    <div class="card">
+      <h3>My PPE <span class="badge">BIS Certified</span></h3>
+      <div class="row"><span>Safety Helmet <span class="muted">(IS 2925)</span></span><span class="badge" id="ppeHelmet">Valid</span></div>
+      <div class="row"><span>Safety Shoes <span class="muted">(IS 15298)</span></span><span class="badge yellow" id="ppeShoes">Replace in 12 days</span></div>
+      <div class="row"><span>Protective Gloves</span><span class="badge">Valid</span></div>
+      <div class="row"><span>Self-Rescuer <span class="muted">(UG only)</span></span><span class="badge">Valid</span></div>
+      <button class="secondary" onclick="show('complaint')">📝 Report PPE Damage / Issue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PPE GATE (new) ============ -->
+<section id="gate" class="screen">
+  <button class="secondary back" onclick="show('worker')">← Back</button>
+  <h2>PPE Gate Verification</h2>
+  <div class="card">
+    <h3>RFID scan at entry gate — <span id="gateWorkerName"></span></h3>
+    <p class="muted">Rule 126, Mines Rules 1955: no worker enters without verified PPE.</p>
+    <div id="ppeGateList"></div>
+    <div id="gateResult"></div>
+  </div>
+</section>
+
+<!-- ============ COMPLAINT ============ -->
+<section id="complaint" class="screen">
+<button class="secondary back" onclick="show('worker')">← Back</button>
+<div class="card">
+<h2>Report PPE Issue</h2>
+<label>Language</label><select id="lang"><option>English</option><option>Hindi</option><option>Marathi</option><option>Bengali</option></select>
+<label>Describe the problem</label>
+<textarea id="complaintText" rows="5" placeholder="Type or speak your issue..."></textarea>
+<button class="secondary" onclick="voiceSim()">🎤 Voice Input (real — en/hi/mr/bn)</button>
+<button onclick="saveComplaint()">Submit Complaint</button>
+<div id="complaintResult"></div>
+</div>
+</section>
+
+<!-- ============ OFFICER ============ -->
+<section id="officer" class="screen">
+<button class="secondary back" onclick="show('home')">← Back</button>
+<h2>Officer / Inspector Dashboard</h2>
+<div class="grid">
+  <div class="card"><div class="stat" id="stPresent">127</div><div class="muted">Workers Present</div></div>
+  <div class="card"><div class="stat">97%</div><div class="muted">PPE Compliance</div></div>
+  <div class="card"><div class="stat">6</div><div class="muted">Active Sensors</div></div>
+  <div class="card"><div class="stat" id="stTokens">31</div><div class="muted">Tokens Underground</div></div>
+</div>
+<div id="incPanel"></div>
+<div class="card">
+  <h3>📊 Mine Workforce Headcount</h3>
+  <p class="muted">Normal operational headcount (Form C basis) — all zones. Viewing this board does not trigger an evacuation.</p>
+  <div class="row"><span>Underground (tokens in)</span><b id="tokensIn" style="color:#b42318">31</b></div>
+  <div class="row"><span>Surface (tokens out)</span><b id="tokensOut">96</b></div>
+  <div class="mki-strip" id="zoneStrip"></div>
+  <button class="secondary" onclick="show('wfheadcount')">📊 Open Mine Workforce Headcount</button>
+</div>
+<div class="card">
+<h3>🚨 Sensor Monitoring</h3>
+<div class="row"><span>Sensor S-01 — Zone A</span><span class="badge" id="sens0">NORMAL</span></div>
+<div class="row"><span>Sensor S-02 — Zone B</span><span class="badge" id="sens1">NORMAL</span></div>
+<div class="row"><span>Sensor S-03 — Zone C</span><span class="badge" id="sens2">NORMAL</span></div>
+<div class="row"><span>Sensor S-04 — Zone D</span><span class="badge" id="sens3">NORMAL</span></div>
+<div class="mki-mini">
+  <span class="mki-chip">DEMO MODE</span>
+  <button id="btnSim" onclick="startIncident()">▶ Run Incident Simulation</button>
+  <label title="Headcount outcome used by the demo">Outcome
+    <select id="simScenario"><option value="missing">2 unaccounted</option><option value="all">All accounted</option></select></label>
+  <label><input type="checkbox" id="demoAuto" onchange="onDemoAuto()"> Auto-trigger (60–120 s)</label>
+</div>
+<div class="muted" style="font-size:11.5px;margin-top:6px">Prototype control — no alert is raised on page load. Sensor values and events are simulated.</div>
+</div>
+<div class="card">
+  <h3>Pending Sync (offline queue)</h3>
+  <div id="syncQueueOfficer"><span class="muted">Checking queue...</span></div>
+  <button onclick="syncNow()">↻ Sync Now (push to cloud)</button>
+</div>
+<div class="card">
+<h3>Recent PPE Complaints</h3>
+<div id="complaintsList"><span class="muted">No complaints yet this shift.</span></div>
+</div>
+<div class="card">
+  <h3>📑 Statutory Registers</h3>
+  <div class="grid">
+    <button class="secondary" onclick="show('forma')">Form A — Employment Register</button>
+    <button class="secondary" onclick="show('formc')">Form C — Daily Attendance</button>
+    <button class="secondary" onclick="show('ppereg')">PPE Register (Rule 126)</button>
+  </div>
+</div>
+</section>
+
+<!-- ============ REGISTERS ============ -->
+<section id="forma" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="card"><h2>Form A — Register of Employment (digitized)</h2>
+<p class="muted">Mines Rules 1955 — every person, incl. contract workers, must be listed.</p>
+<table><tr><th>ID</th><th>Name</th><th>Role</th><th>Type</th><th>Skill Cert.</th></tr>
+<tr><td>WK001</td><td>Rahul Patil</td><td>HEMM Operator</td><td>Permanent</td><td>✅</td></tr>
+<tr><td>WK002</td><td>Amit Kumar</td><td>Driller</td><td>Contract</td><td>✅</td></tr>
+<tr><td>WK003</td><td>Suresh More</td><td>Timberman</td><td>Contract</td><td>✅</td></tr>
+<tr><td>WK004</td><td>Devidas K.</td><td>Electrician</td><td>Permanent</td><td>✅</td></tr></table></div>
+</section>
+
+<section id="formc" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="card"><h2>Form C — Daily Attendance (auto-generated)</h2>
+<p class="muted">Marked via biometric/QR check-in. Entries are hash-chained.</p>
+<table><tr><th>Worker</th><th>In</th><th>Gate PPE</th><th>Token</th><th>Hash</th></tr>
+<tbody id="formcBody"></tbody></table></div>
+</section>
+
+<section id="ppereg" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="card"><h2>PPE Register — Rule 126</h2>
+<p class="muted">Issue, inspection (6-monthly) & replacement log. BIS-certified items only.</p>
+<table><tr><th>Item</th><th>Standard</th><th>Issued</th><th>Next Insp.</th><th>Status</th></tr>
+<tr><td>Helmet</td><td>IS 2925</td><td>02-Jan-26</td><td>02-Jul-26</td><td><span class="badge">OK</span></td></tr>
+<tr><td>Safety Shoes</td><td>IS 15298</td><td>14-Sep-25</td><td>14-Mar-26</td><td><span class="badge yellow">Replace Soon</span></td></tr>
+<tr><td>Cap Lamp</td><td>IS 9581</td><td>10-Feb-26</td><td>10-Aug-26</td><td><span class="badge">OK</span></td></tr></table></div>
+</section>
+
+<!-- ============ WORKFORCE HEADCOUNT (normal operations) ============ -->
+<section id="wfheadcount" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="card"><h2>⛏ Mine Workforce Headcount</h2>
+<p class="muted">Normal operational headcount — Mine A. Simulated prototype values. This is not the evacuation headcount.</p>
+<div class="mki-wrap"><table class="mki-tbl"><thead><tr><th>Zone</th><th class="n">Underground</th><th class="n">Surface</th><th class="n">Total</th><th>Status</th></tr></thead>
+<tbody id="wfBody"></tbody></table></div>
+<div id="wfNote"></div>
+</div>
+</section>
+
+<!-- ============ EVACUATION HEADCOUNT (incident only) ============ -->
+<section id="headcount" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="mki-board">
+  <h2>🚨 Emergency Evacuation Headcount</h2>
+  <div class="mki-muted">Mine A — Zone C · zone-specific evacuation · simulated demonstration</div>
+  <div id="evacBody"></div>
+</div>
+</section>
+
+<!-- ============ INCIDENT VERIFICATION BOARD ============ -->
+<section id="alert" class="screen">
+<button class="secondary back" onclick="show('officer')">← Back</button>
+<div class="mki-board">
+  <h2>🚨 Incident Verification — Mine A / Zone C</h2>
+  <div class="mki-muted">Review the evidence before initiating evacuation. <span class="mki-chip sim">SIMULATED DEMONSTRATION DATA</span></div>
+  <div id="verifyBody"></div>
+</div>
+</section>
+
+<section id="alarm" class="screen">
+<div class="mki-board">
+  <div class="mki-banner"><span class="dot"></span>EMERGENCY ALARM ACTIVE</div>
+  <h2>Mine A — Zone C</h2>
+  <p>Emergency response is active. Evacuation headcount has not started.</p>
+  <div class="mki-panel">
+    <h3>Underground Notification <span class="mki-chip sim">SIMULATED NOTIFICATION</span></h3>
+    <div class="mki-kv"><span>Status</span><b class="mki-ok">✓ Emergency notification issued</b></div>
+    <div class="mki-kv"><span>Location</span><b>Mine A · Zone C</b></div>
+    <div class="mki-kv"><span>Recipients</span><b>Affected underground personnel</b></div>
+    <div class="mki-kv"><span>Instruction</span><b>Evacuate via designated return airway to surface</b></div>
+    <div class="mki-kv"><span>Muster point</span><b>Surface Muster Point 1</b></div>
+    <div class="mki-note">No real radio or network transmission is made by this prototype.</div>
+  </div>
+  <div class="mki-btns"><button class="danger" onclick="startEvacuationHeadcount()">▶ RUN EVACUATION HEADCOUNT</button></div>
+  <div class="mki-note">Inspector action is required to begin zone-specific evacuation headcount.</div>
+</div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section id="admin" class="screen">
+<button class="secondary back" onclick="show('home')">← Back</button>
+<h2>Management / Admin</h2>
+<div class="grid">
+<div class="card"><div class="stat">342</div><div class="muted">Registered Workers</div></div>
+<div class="card"><div class="stat" id="stRepl">18</div><div class="muted">PPE Replacements Due</div></div>
+<div class="card"><div class="stat" id="stComplaints">0</div><div class="muted">Open Complaints</div></div>
+<div class="card"><div class="stat" id="stSync">0</div><div class="muted">Pending Sync Records</div></div>
+</div>
+<div class="card">
+<h3>Worker Database</h3>
+<div class="row"><span>WK001 — Rahul Patil</span><span class="badge" id="dbWk1">Absent</span></div>
+<div class="row"><span>WK002 — Amit Kumar</span><span class="badge yellow">PPE Due</span></div>
+<div class="row"><span>WK003 — Suresh More</span><span class="badge red">Absent</span></div>
+</div>
+<div class="card">
+<h3>Offline Sync</h3>
+<p id="syncText">No pending records.</p>
+<button onclick="syncNow()">↻ Sync Pending Records</button>
+</div>
+<div class="card">
+<h3>🔗 Audit Trail (SHA-256, FIPS 180-4)</h3>
+<div id="auditTrail"><span class="muted">Records will be hash-chained here as events occur.</span></div>
+</div>
+</section>
+
+<!-- ============ COMPLIANCE MATRIX ============ -->
+<section id="compliance" class="screen">
+<button class="secondary back" onclick="show('home')">← Back</button>
+<div class="card">
+<h2>⚖️ DGMS Compliance Matrix</h2>
+<p class="muted">Every MineKawach module mapped to the statute it satisfies — inspection-ready.</p>
+<table>
+<tr><th>Module</th><th>Requirement</th><th>Law / Rule</th><th>Status</th></tr>
+<tr><td>Biometric + QR attendance</td><td>Biometric system; digitized Form-A; Aadhaar-based where possible</td><td>DGMS — 12th National Conference on Safety in Mines; Mines Rules 1955 (Forms A, C, D, E)</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>PPE gate verification + PPE register</td><td>Provide PPE, enforce use, 6-monthly inspection, replacement log</td><td>Rule 126, Mines Rules 1955; CMR 2017 Reg. 123</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>BIS-certified PPE tracking</td><td>Only BIS-certified PPE (e.g., IS 15298 footwear); test certificates retained</td><td>DGMS circular — PPE quality (BIS regime)</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>HEMM fatigue check-in/out</td><td>Max 8 hrs continuous duty, 30-min break after 4 hrs</td><td>CMR 2017; DGMS fatigue-monitoring directives</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>Token headcount board</td><td>Know exactly who is underground at any time; rescue headcount</td><td>Mines Rules 1955; CMR 2017 (manager's duties)</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>Skill-gate at check-in</td><td>No engagement without assessed skill/competency</td><td>Mines Act 1952; DGMS skill-assessment circulars</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>Contractor coverage</td><td>Contract workers in Form A, same PPE & benefits</td><td>Mines Act 1952; Mines Rules 1955</td><td><span class="badge">✓ Covered</span></td></tr>
+<tr><td>Alcohol prohibition enforcement</td><td>No alcohol/drugs below ground; checks at entry</td><td>Mines Rules 1955</td><td><span class="badge yellow">Roadmap</span></td></tr>
+<tr><td>Training records</td><td>Initial & refresher training, MVT Rules compliance</td><td>Mines Vocational Training Rules 1966</td><td><span class="badge yellow">Roadmap</span></td></tr>
+<tr><td>Medical fitness (IME/PME)</td><td>Initial & periodic medical examinations</td><td>Mines Rules 1955</td><td><span class="badge yellow">Roadmap</span></td></tr>
+<tr><td>SHA-256 audit trail</td><td>Tamper-evident records for inspection</td><td>NIST FIPS 180-4 (implementation standard)</td><td><span class="badge">✓ Covered</span></td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============ VOICE ASSISTANT ============ -->
+<section id="assistant" class="screen">
+<button class="secondary back" onclick="show('home')">← Back</button>
+<div class="card center">
+<div class="big-icon">🗣️</div>
+<h2>Sahayak — Multilingual AI Voice Assistant</h2>
+<p class="muted">Ask about safety rules, PPE, wages or attendance in your own language. Works offline-first; speech uses on-device engine where available.</p>
+<label style="text-align:left">Language / भाषा</label>
+<select id="vaLang" onchange="vaGreet()">
+<option value="en-IN">English</option><option value="hi-IN">हिन्दी</option>
+<option value="mr-IN">मराठी</option><option value="bn-IN">বাংলা</option>
+</select>
+<div style="display:flex;gap:10px;margin-top:8px">
+<button onclick="vaGreet()">▶ Speak Greeting</button>
+<button class="secondary" onclick="vaListen()">🎤 Ask by Voice</button>
+</div>
+<div id="vaOut" class="notice" style="margin-top:12px;text-align:left">Assistant ready.</div>
+<h3 style="text-align:left;margin-top:18px">Quick questions</h3>
+<div class="grid" style="text-align:left">
+<button class="secondary" onclick="vaAsk('ppe')">What PPE do I need today?</button>
+<button class="secondary" onclick="vaAsk('hours')">How many hours can I work?</button>
+<button class="secondary" onclick="vaAsk('wage')">How is my attendance linked to wages?</button>
+<button class="secondary" onclick="vaAsk('helpline')">What is the emergency helpline?</button>
+</div>
+</div>
+</section>
+
+<!-- ============ REGIONAL MINE INTELLIGENCE (new, isolated module) ============ -->
+<section id="regionalIntel" class="screen">
+<button class="secondary back" onclick="show('home')">← Back</button>
+<div class="mk-rmi-header mk-reveal">
+  <h2>Regional Mine Intelligence</h2>
+  <div class="muted" style="font-size:13px;color:var(--mk-muted)">Operational visibility across mining regions</div>
+  <span class="mk-badge-sim">SIMULATION / DEMONSTRATION DATA</span>
+</div>
+<div id="rmiRoot" class="rmi"></div>
+</section>
+
+</main>
+
+<footer class="mk-footer mk-reveal">
+  <h3>MineKawach</h3>
+  <div class="tag">Integrated Digital Mine Safety &amp; Workforce Monitoring Prototype</div>
+  <div class="mk-footer-links">
+    <span>Worker Safety</span><span>Mine Intelligence</span><span>Compliance</span><span>Emergency Response</span>
+  </div>
+  <div class="mk-footer-note">
+    Prototype / Demonstration System. Data shown in demonstration modules (including Regional Mine Intelligence and AI Safety Vision) may be simulated. MineKawach is an independent prototype and is not an official Government of India portal.
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+/* ==================================================================================
+   REGIONAL MINE INTELLIGENCE — isolated module for MineKawach
+   ------------------------------------------------------------------------------
+   This file is fully additive. It does not read, modify, or depend on any
+   variable/function inside app.js. It owns its own namespace (window.RMI),
+   its own state, and its own DOM subtree (#regionalIntel).
+
+   DATA MODE: everything rendered here is clearly labelled SIMULATED /
+   DEMONSTRATION DATA. Mine names/districts/operators are real public
+   Jharkhand coalfield identities used for a realistic demo backdrop;
+   headcounts, compliance, alerts and sensor values are randomly generated
+   and are NOT real operational figures. Nothing here should be read as
+   verified real-world data.
+
+   FUTURE BACKEND: RMI.api.* below is the seam where a real backend can be
+   attached later (see RMI.api docstring) without touching the UI code.
+   ================================================================================== */
+(function(){
+'use strict';
+
+/* ------------------------------------------------------------------ */
+/* CONFIG — vision provider is configured via build-time / server-side
+   environment, never hard-coded here. If unset, the module runs the
+   AI Vision panel in simulated mode automatically.                    */
+/* ------------------------------------------------------------------ */
+const CONFIG = {
+  // Populate at deploy time (e.g. injected by your build, or fetched from
+  // a same-origin /api/config endpoint). NEVER put a real Roboflow/YOLO
+  // API key in this frontend file.
+  visionProvider: null,      // e.g. 'roboflow'
+  visionEndpoint: null,      // e.g. '/api/mines/:id/vision' (server proxies the real call)
+  visionModelId: null,       // e.g. 'mine-ppe-detection/4'
+  supportedClasses: ['person','helmet','safety_vest','safety_shoes','gloves','hemm_vehicle',
+                      'restricted_zone_entry','ppe_violation','unsafe_proximity']
+};
+
+/* ------------------------------------------------------------------ */
+/* DEMO DATASET — Jharkhand coalfields. See header note on data mode.  */
+/* ------------------------------------------------------------------ */
+const STATUTORY_KEYS = ['Employment Register','Attendance','PPE','PPE Inspection','Training',
+                         'Medical Fitness','Emergency Preparedness','Safety Inspection'];
+const STATUS_VALUES = ['COMPLIANT','COMPLIANT','COMPLIANT','ATTENTION','NON-COMPLIANT','DATA UNAVAILABLE'];
+
+function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function randInt(a,b){return Math.floor(a+Math.random()*(b-a+1));}
+
+function makeStatutory(){
+  const o={};
+  STATUTORY_KEYS.forEach(k=>{o[k]=rand(STATUS_VALUES);});
+  return o;
+}
+
+const BASE_MINES = [
+  {id:'JH-BCCL-01',name:'Jharia Colliery',district:'Dhanbad',operator:'BCCL',mineType:'Underground',lat:23.739,lng:86.414},
+  {id:'JH-BCCL-02',name:'Kusunda Colliery',district:'Dhanbad',operator:'BCCL',mineType:'Underground',lat:23.792,lng:86.402},
+  {id:'JH-BCCL-03',name:'Moonidih Colliery',district:'Dhanbad',operator:'BCCL',mineType:'Underground',lat:23.808,lng:86.328},
+  {id:'JH-CCL-01',name:'Bokaro Colliery',district:'Bokaro',operator:'CCL',mineType:'Opencast',lat:23.789,lng:86.151},
+  {id:'JH-CCL-02',name:'Kargali Washery Area',district:'Bokaro',operator:'CCL',mineType:'Opencast',lat:23.735,lng:86.168},
+  {id:'JH-CCL-03',name:'Dhori Colliery',district:'Bokaro',operator:'CCL',mineType:'Mixed',lat:23.802,lng:86.032},
+  {id:'JH-CCL-04',name:'Piparwar OCP',district:'Chatra',operator:'CCL',mineType:'Opencast',lat:23.897,lng:85.140},
+  {id:'JH-CCL-05',name:'Ashoka OCP (North Karanpura)',district:'Hazaribagh',operator:'CCL',mineType:'Opencast',lat:23.876,lng:85.262},
+  {id:'JH-CCL-06',name:'Tandsi Colliery',district:'Hazaribagh',operator:'CCL',mineType:'Underground',lat:23.918,lng:85.313},
+  {id:'JH-CCL-07',name:'Rajrappa OCP',district:'Ramgarh',operator:'CCL',mineType:'Opencast',lat:23.628,lng:85.512},
+  {id:'JH-CCL-08',name:'Argada Colliery',district:'Ramgarh',operator:'CCL',mineType:'Underground',lat:23.617,lng:85.548},
+  {id:'JH-CCL-09',name:'Karo OCP',district:'Ramgarh',operator:'CCL',mineType:'Opencast',lat:23.652,lng:85.487},
+  {id:'JH-PVT-01',name:'Giridih Colliery (Legacy)',district:'Giridih',operator:'BCCL',mineType:'Underground',lat:24.184,lng:86.301},
+  {id:'JH-CCL-10',name:'Kedla OCP',district:'Ramgarh',operator:'CCL',mineType:'Opencast',lat:23.669,lng:85.541}
+];
+
+const OP_STATUS = ['Operating','Operating','Operating','Operating','Temporarily Inactive','Warning','Critical','Closed'];
+
+function genMine(base){
+  const total = randInt(180,920);
+  const ug = base.mineType==='Opencast' ? randInt(0,15) : randInt(Math.floor(total*0.35),Math.floor(total*0.7));
+  const surf = total-ug;
+  const opStatus = rand(OP_STATUS);
+  const ppe = randInt(70,99);
+  const alertsCount = opStatus==='Critical'?randInt(2,5):opStatus==='Warning'?randInt(1,2):randInt(0,1);
+  const statutory = makeStatutory();
+  const nonCompliant = Object.values(statutory).filter(v=>v==='NON-COMPLIANT').length;
+  const attention = Object.values(statutory).filter(v=>v==='ATTENTION').length;
+  const complianceStatus = nonCompliant>0?'NON-COMPLIANT':attention>0?'ATTENTION':'COMPLIANT';
+  return Object.assign({},base,{
+    operationalStatus:opStatus,
+    workerCount:total,
+    undergroundCount:ug,
+    surfaceCount:surf,
+    permanentCount:Math.round(total*0.62),
+    contractCount:total-Math.round(total*0.62),
+    ppeCompliance:ppe,
+    sensorStatus: opStatus==='Critical'?'ALERT':opStatus==='Warning'?'DEGRADED':'NORMAL',
+    complianceStatus,
+    safetyStatus: opStatus==='Critical'?'CRITICAL':opStatus==='Warning'?'WARNING':(ppe<85?'ATTENTION':'NORMAL'),
+    alerts: alertsCount,
+    emergencyReadiness: rand(['READY','READY','DRILL DUE']),
+    evacuationStatus: 'Muster points active — last drill ' + randInt(2,40) + 'd ago',
+    statutory,
+    dataSource:'SIMULATED',
+    dataMode:'SIMULATED',
+    lastUpdated: Date.now()
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* STATE                                                               */
+/* ------------------------------------------------------------------ */
+const RMI = window.RMI = {
+  mines: BASE_MINES.map(genMine),
+  map: null,
+  markers: {},           // id -> leaflet marker
+  selectedId: null,
+  simPaused: false,
+  simTimer: null,
+  filters: { status:'', compliance:'', safety:'', type:'', size:'', q:'' },
+  _inited: false,
+  CONFIG
+};
+
+/* ------------------------------------------------------------------ */
+/* API SEAM — swap the bodies below for real fetch() calls once a
+   backend exists. Endpoints match the spec:
+   /api/mines  /api/mines/:id  /api/mines/:id/headcount
+   /api/mines/:id/compliance  /api/mines/:id/safety  /api/mines/:id/vision */
+/* ------------------------------------------------------------------ */
+RMI.api = {
+  async listMines(){ return RMI.mines; },                              // -> GET /api/mines
+  async getMine(id){ return RMI.mines.find(m=>m.id===id)||null; },     // -> GET /api/mines/:id
+  async getHeadcount(id){ const m=await RMI.api.getMine(id); return m&&{underground:m.undergroundCount,surface:m.surfaceCount,total:m.workerCount}; },
+  async getCompliance(id){ const m=await RMI.api.getMine(id); return m&&m.statutory; },
+  async getSafety(id){ const m=await RMI.api.getMine(id); return m&&{safetyStatus:m.safetyStatus,sensorStatus:m.sensorStatus,alerts:m.alerts}; },
+  async runVision(id, image){ return runMineVision(image); }           // -> POST /api/mines/:id/vision
+};
+
+/* ==================================================================== */
+/* PUBLIC ENTRY — called from index.html when the home-screen tile is
+   tapped. Safe to call multiple times.                                 */
+/* ==================================================================== */
+RMI.open = function(){
+  try{
+    if(!RMI._inited){ buildUI(); RMI._inited = true; }
+    setTimeout(()=>{ if(RMI.map){ RMI.map.invalidateSize(); if(!RMI._fitted){ RMI._fitted=true; RMI.fitAll(); } } }, 80);
+    setTimeout(()=>{ if(RMI.map){ RMI.map.invalidateSize(); } }, 400);
+    startSim();
+  }catch(err){
+    console.error('[RMI] failed to open Regional Mine Intelligence:', err);
+    const root = document.getElementById('rmiRoot');
+    if(root){
+      root.innerHTML = `<div class="rmi-empty" style="color:#ff8a8a;text-align:left;padding:16px">
+        <b>Regional Mine Intelligence failed to load.</b><br><br>
+        ${typeof L==='undefined' ? 'The Leaflet mapping library did not load from cdnjs.cloudflare.com — this usually means there is no internet connection, or this domain is blocked on this network/device. Everything else on this screen should still work.' : 'Error: '+ (err && err.message)}
+      </div>`;
+    }
+  }
+};
+
+/* ==================================================================== */
+/* UI CONSTRUCTION                                                      */
+/* ==================================================================== */
+function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
+const $ = id => document.getElementById(id);
+
+function buildUI(){
+  const root = $('rmiRoot');
+  root.innerHTML = `
+    <div class="rmi-top">
+      <div>
+        <h2>🗺️ Regional Mine Intelligence</h2>
+        <div class="muted">Jharkhand coalfields — command dashboard · <span class="rmi-tag">SIMULATED / DEMONSTRATION DATA</span></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="rmi-live" id="rmiLive"><span class="rmi-dot"></span><span id="rmiLiveText">LIVE SIMULATION</span></div>
+        <button id="rmiPauseBtn" onclick="RMI.togglePause()">⏸ Pause</button>
+      </div>
+    </div>
+    <div class="muted" id="rmiTimestamp" style="margin:-4px 0 12px;font-size:12px"></div>
+
+    <div class="rmi-summary" id="rmiSummary"></div>
+
+    <div class="rmi-controls">
+      <input id="rmiSearch" placeholder="Search mine name, ID, district or operator…" oninput="RMI.applyFilters()">
+      <select id="rmiFStatus" onchange="RMI.applyFilters()">
+        <option value="">Operational status: All</option>
+        <option>Operating</option><option>Temporarily Inactive</option><option>Warning</option>
+        <option>Critical</option><option>Closed</option>
+      </select>
+      <select id="rmiFCompliance" onchange="RMI.applyFilters()">
+        <option value="">Compliance: All</option>
+        <option>COMPLIANT</option><option>ATTENTION</option><option>NON-COMPLIANT</option>
+      </select>
+      <select id="rmiFSafety" onchange="RMI.applyFilters()">
+        <option value="">Safety: All</option>
+        <option>NORMAL</option><option>ATTENTION</option><option>WARNING</option><option>CRITICAL</option>
+      </select>
+      <select id="rmiFType" onchange="RMI.applyFilters()">
+        <option value="">Mine type: All</option>
+        <option>Opencast</option><option>Underground</option><option>Mixed</option>
+      </select>
+      <select id="rmiFSize" onchange="RMI.applyFilters()">
+        <option value="">Workforce: All</option>
+        <option value="s">Under 300</option><option value="m">300–600</option><option value="l">600+</option>
+      </select>
+      <button id="rmiLayerBtn" onclick="RMI.toggleLayer()">🛰 Satellite layer</button>
+    </div>
+
+    <div class="rmi-body">
+      <div class="rmi-mapwrap">
+        <div id="rmiMap" class="rmi-map"></div>
+        <div class="rmi-legend">
+          <div class="li"><span class="dot" style="background:#1fb56f"></span>Operating</div>
+          <div class="li"><span class="dot" style="background:#e0a52c"></span>Temporarily inactive</div>
+          <div class="li"><span class="dot" style="background:#ff9d2e"></span>Warning</div>
+          <div class="li"><span class="dot" style="background:#e14b4b"></span>Critical</div>
+          <div class="li"><span class="dot" style="background:#5b6c8c"></span>Closed</div>
+        </div>
+        <div class="rmi-hover" id="rmiHover"></div>
+      </div>
+      <div class="rmi-panel" id="rmiPanel"><div class="rmi-empty">Select a mine marker to view full details — workforce, safety, and statutory compliance.</div></div>
+    </div>
+
+    <div class="rmi-vision" id="rmiVision"></div>
+  `;
+  buildVisionUI();
+  initMap();
+  renderSummary();
+  renderMarkers();
+  tickTimestamp();
+}
+
+/* ---------------- Summary ---------------- */
+function renderSummary(){
+  const m = RMI.mines;
+  const s = {
+    total: m.length,
+    operating: m.filter(x=>x.operationalStatus==='Operating').length,
+    closed: m.filter(x=>x.operationalStatus==='Closed').length,
+    workers: m.reduce((a,x)=>a+x.workerCount,0),
+    ug: m.reduce((a,x)=>a+x.undergroundCount,0),
+    surf: m.reduce((a,x)=>a+x.surfaceCount,0),
+    complianceAlerts: m.filter(x=>x.complianceStatus!=='COMPLIANT').length,
+    safetyAlerts: m.reduce((a,x)=>a+x.alerts,0)
+  };
+  const cards = [
+    ['Total Mines',s.total],['Operating',s.operating],['Closed',s.closed],
+    ['Total Workers',s.workers],['Underground',s.ug],['Surface',s.surf],
+    ['Compliance Alerts',s.complianceAlerts],['Safety Alerts',s.safetyAlerts]
+  ];
+  $('rmiSummary').innerHTML = cards.map(c=>`<div class="rmi-stat"><div class="n">${c[1]}</div><div class="l">${c[0]}</div></div>`).join('');
+}
+
+/* ---------------- Map ---------------- */
+function initMap(){
+  RMI.map = L.map('rmiMap', {zoomControl:true, attributionControl:true, worldCopyJump:true}).setView([23.75,85.9], 8);
+
+  // BASEMAP: the previous CARTO "rastertiles/voyager" endpoint now answers with
+  // watermarked "API KEY REQUIRED" tiles (HTTP 200, so no error fires and the map
+  // looked blank). We now use key-free providers, in order, and fall through to the
+  // next one automatically if a provider errors OR never manages to load a tile.
+  const STREET_CHAIN = [
+    {name:'Esri Streets', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr:'Tiles © Esri — Esri, HERE, Garmin, OpenStreetMap contributors', max:19},
+    {name:'OpenStreetMap', url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap contributors', max:19},
+    {name:'Esri Streets (backup host)', url:'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr:'Tiles © Esri', max:19}
+  ];
+  let si = 0;
+  RMI.tileStandard = L.tileLayer(STREET_CHAIN[0].url, {maxZoom:19, attribution:STREET_CHAIN[0].attr}).addTo(RMI.map);
+  RMI.tileSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom:19, attribution:'Tiles © Esri — Maxar, Earthstar Geographics'
+  });
+  RMI.layerOn = false;
+
+  // Self-healing tiles: on repeated errors, or if nothing has loaded after a few
+  // seconds, move the street layer to the next provider and tell the user once.
+  let errs = 0, loaded = 0;
+  function nextStreet(reason){
+    if(si >= STREET_CHAIN.length-1) return;
+    const prev = STREET_CHAIN[si]; si++; const nx = STREET_CHAIN[si];
+    errs = 0;
+    RMI.tileStandard.setUrl(nx.url);
+    if(RMI.map.attributionControl){ RMI.map.attributionControl.removeAttribution(prev.attr); RMI.map.attributionControl.addAttribution(nx.attr); }
+    mapNotice('Map tiles from '+prev.name+' '+reason+' — switched to '+nx.name+'.');
+  }
+  RMI.tileStandard.on('tileload', ()=>{ loaded++; });
+  RMI.tileStandard.on('tileerror', ()=>{ errs++; if(errs>=4) nextStreet('were unreachable'); });
+  [7000, 15000].forEach(ms=> setTimeout(()=>{ if(!loaded && !RMI.layerOn && navigator.onLine!==false) nextStreet('did not respond'); }, ms));
+
+  // Satellite backup host
+  let sErrs=0, sSwitched=false;
+  RMI.tileSat.on('tileerror', ()=>{
+    sErrs++;
+    if(sErrs>=4 && !sSwitched){
+      sSwitched=true;
+      RMI.tileSat.setUrl('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+      mapNotice('Satellite tiles were unreachable — switched to a backup host.');
+    }
+  });
+
+  // Keep the map correctly sized whenever its box changes (screen switch, rotate, resize, sheet open)
+  if(window.ResizeObserver){
+    let t; new ResizeObserver(()=>{ clearTimeout(t); t=setTimeout(()=>RMI.map&&RMI.map.invalidateSize(),80); }).observe($('rmiMap'));
+  }
+  window.addEventListener('resize', ()=>{ RMI.map && RMI.map.invalidateSize(); });
+}
+RMI.fitAll = function(){
+  try{
+    const pts = RMI.mines.map(m=>[m.lat,m.lng]);
+    if(pts.length) RMI.map.fitBounds(L.latLngBounds(pts), {padding:[48,48], maxZoom:10});
+  }catch(e){}
+};
+function mapNotice(msg){
+  const wrap=document.querySelector('.rmi-mapwrap'); if(!wrap) return;
+  let n=document.getElementById('rmiTileNotice');
+  if(!n){
+    n=document.createElement('div'); n.id='rmiTileNotice';
+    n.style.cssText='position:absolute;top:10px;left:50px;right:10px;z-index:700;background:#3a2a06;color:#f5c563;border:1px solid #5a4009;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.4';
+    wrap.appendChild(n);
+  }
+  n.textContent=msg;
+  clearTimeout(n._t); n._t=setTimeout(()=>{ n.remove(); }, 12000);
+}
+RMI.toggleLayer = function(){
+  RMI.layerOn = !RMI.layerOn;
+  if(RMI.layerOn){ RMI.map.removeLayer(RMI.tileStandard); RMI.tileSat.addTo(RMI.map); }
+  else { RMI.map.removeLayer(RMI.tileSat); RMI.tileStandard.addTo(RMI.map); }
+  $('rmiLayerBtn').classList.toggle('on', RMI.layerOn);
+};
+
+function statusClass(mine){
+  if(mine.operationalStatus==='Closed') return 'closed';
+  if(mine.operationalStatus==='Critical' || mine.safetyStatus==='CRITICAL') return 'crit';
+  if(mine.operationalStatus==='Warning' || mine.safetyStatus==='WARNING') return 'warn';
+  if(mine.operationalStatus==='Temporarily Inactive') return 'inactive';
+  return 'op';
+}
+function complBadgeClass(v){
+  return v==='COMPLIANT'?'compliant':v==='ATTENTION'?'attention':v==='NON-COMPLIANT'?'noncompliant':'unavailable';
+}
+function radiusFor(mine){ return 7 + Math.min(mine.workerCount/150, 7); }
+
+function matchesFilters(m){
+  const f = RMI.filters;
+  if(f.status && m.operationalStatus!==f.status) return false;
+  if(f.compliance && m.complianceStatus!==f.compliance) return false;
+  if(f.safety && m.safetyStatus!==f.safety) return false;
+  if(f.type && m.mineType!==f.type) return false;
+  if(f.size==='s' && !(m.workerCount<300)) return false;
+  if(f.size==='m' && !(m.workerCount>=300 && m.workerCount<=600)) return false;
+  if(f.size==='l' && !(m.workerCount>600)) return false;
+  if(f.q){
+    const q=f.q.toLowerCase();
+    const hay=(m.name+' '+m.id+' '+m.district+' '+m.operator).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderMarkers(){
+  Object.values(RMI.markers).forEach(mk=>RMI.map.removeLayer(mk));
+  RMI.markers = {};
+  RMI.mines.forEach(m=>{
+    if(!matchesFilters(m)) return;
+    const cls = statusClass(m);
+    const icon = L.divIcon({className:'', html:`<div class="rmi-marker ${cls}" style="width:${radiusFor(m)*2}px;height:${radiusFor(m)*2}px"></div>`, iconSize:[radiusFor(m)*2,radiusFor(m)*2]});
+    const mk = L.marker([m.lat,m.lng], {icon}).addTo(RMI.map);
+    mk.on('mouseover', e=>showHover(m, e));
+    mk.on('mousemove', e=>positionHover(e));
+    mk.on('mouseout', hideHover);
+    mk.on('click', ()=>selectMine(m.id));
+    RMI.markers[m.id] = mk;
+  });
+}
+
+RMI.applyFilters = function(){
+  RMI.filters = {
+    status: $('rmiFStatus').value, compliance: $('rmiFCompliance').value,
+    safety: $('rmiFSafety').value, type: $('rmiFType').value,
+    size: $('rmiFSize').value, q: $('rmiSearch').value.trim()
+  };
+  renderMarkers();
+};
+
+/* ---------------- Hover card ---------------- */
+function showHover(m, e){
+  const h = $('rmiHover');
+  h.innerHTML = `<b>${m.name}</b><div class="muted" style="font-size:11px;margin-bottom:6px">${m.id} · ${m.district}</div>
+   <div class="row"><span class="muted">Operator</span><span>${m.operator}</span></div>
+   <div class="row"><span class="muted">Type</span><span>${m.mineType}</span></div>
+   <div class="row"><span class="muted">Status</span><span class="rmi-badge ${statusClass(m)}">${m.operationalStatus}</span></div>
+   <div class="row"><span class="muted">Headcount</span><span>${m.workerCount} (UG ${m.undergroundCount} / Surf ${m.surfaceCount})</span></div>
+   <div class="row"><span class="muted">PPE compliance</span><span>${m.ppeCompliance}%</span></div>
+   <div class="row"><span class="muted">Statutory</span><span class="rmi-badge ${complBadgeClass(m.complianceStatus)}">${m.complianceStatus}</span></div>
+   <div class="row"><span class="muted">Active alerts</span><span>${m.alerts}</span></div>
+   <div class="row"><span class="muted">Last update</span><span>${new Date(m.lastUpdated).toLocaleTimeString()}</span></div>`;
+  h.style.display='block';
+  positionHover(e);
+}
+function positionHover(e){
+  const h=$('rmiHover'); const wrap=document.querySelector('.rmi-mapwrap');
+  const pt = e.containerPoint || {x:20,y:20};
+  const rect = wrap.getBoundingClientRect();
+  let x = pt.x+16, y = pt.y+10;
+  if(x + 240 > rect.width) x = pt.x - 246;
+  h.style.left = x+'px'; h.style.top = y+'px';
+}
+function hideHover(){ $('rmiHover').style.display='none'; }
+
+/* ---------------- Detail panel ---------------- */
+function selectMine(id){
+  RMI.selectedId = id;
+  renderDetailPanel();
+}
+function renderDetailPanel(){
+  const m = RMI.mines.find(x=>x.id===RMI.selectedId);
+  const panel = $('rmiPanel');
+  if(!m){ panel.innerHTML = '<div class="rmi-empty">Select a mine marker to view full details.</div>'; return; }
+  const isMobile = window.innerWidth < 860;
+  panel.classList.toggle('rmi-sheet', isMobile);
+  const statRows = STATUTORY_KEYS.map(k=>`<div class="rmi-kv"><span class="k">${k}</span><span class="rmi-badge ${complBadgeClass(m.statutory[k])}">${m.statutory[k]}</span></div>`).join('');
+  panel.innerHTML = `
+    <button class="rmi-close" onclick="RMI.closePanel()">✕ Close</button>
+    <div class="sec">
+      <h3>${m.name} <span class="rmi-badge ${statusClass(m)}" style="margin-left:6px">${m.operationalStatus}</span></h3>
+      <div class="muted" style="font-size:12px">${m.id} · <span class="rmi-tag">${m.dataMode}</span></div>
+      <div class="rmi-kv"><span class="k">Operator</span><span>${m.operator}</span></div>
+      <div class="rmi-kv"><span class="k">District</span><span>${m.district}, Jharkhand</span></div>
+      <div class="rmi-kv"><span class="k">Mine type</span><span>${m.mineType}</span></div>
+      <div class="rmi-kv"><span class="k">Coordinates</span><span>${m.lat.toFixed(3)}, ${m.lng.toFixed(3)}</span></div>
+      <div class="rmi-kv"><span class="k">Last update</span><span>${new Date(m.lastUpdated).toLocaleTimeString()}</span></div>
+    </div>
+    <div class="sec">
+      <h4>Workforce</h4>
+      <div class="rmi-kv"><span class="k">Total</span><span>${m.workerCount}</span></div>
+      <div class="rmi-kv"><span class="k">Underground</span><span>${m.undergroundCount}</span></div>
+      <div class="rmi-kv"><span class="k">Surface</span><span>${m.surfaceCount}</span></div>
+      <div class="rmi-kv"><span class="k">Permanent</span><span>${m.permanentCount}</span></div>
+      <div class="rmi-kv"><span class="k">Contract</span><span>${m.contractCount}</span></div>
+    </div>
+    <div class="sec">
+      <h4>Safety</h4>
+      <div class="rmi-kv"><span class="k">PPE compliance</span><span>${m.ppeCompliance}%</span></div>
+      <div class="rmi-kv"><span class="k">Sensor status</span><span class="rmi-badge ${m.sensorStatus==='ALERT'?'crit':m.sensorStatus==='DEGRADED'?'warn':'op'}">${m.sensorStatus}</span></div>
+      <div class="rmi-kv"><span class="k">Safety alerts</span><span>${m.alerts}</span></div>
+      <div class="rmi-kv"><span class="k">Emergency readiness</span><span>${m.emergencyReadiness}</span></div>
+      <div class="rmi-kv"><span class="k">Evacuation / headcount</span><span style="text-align:right">${m.evacuationStatus}</span></div>
+    </div>
+    <div class="sec">
+      <h4>Statutory Compliance</h4>
+      ${statRows}
+    </div>
+    <div class="sec muted" style="font-size:11px">Demonstration data only — not verified real-world compliance status. Source: ${m.dataSource}.</div>
+  `;
+}
+RMI.closePanel = function(){ RMI.selectedId=null; renderDetailPanel(); };
+
+/* ==================================================================== */
+/* LIVE SIMULATION ENGINE                                                */
+/* ==================================================================== */
+function tickTimestamp(){
+  $('rmiTimestamp').textContent = 'Last simulated update: ' + new Date().toLocaleTimeString();
+}
+function simulateStep(){
+  // Nudge a handful of random mines to emulate a live feed.
+  const n = randInt(1,3);
+  for(let i=0;i<n;i++){
+    const m = rand(RMI.mines);
+    m.workerCount = Math.max(50, m.workerCount + randInt(-6,6));
+    if(m.mineType==='Opencast'){ m.undergroundCount = Math.max(0, m.undergroundCount+randInt(-1,1)); }
+    else { m.undergroundCount = Math.max(0, Math.min(m.workerCount, m.undergroundCount + randInt(-5,5))); }
+    m.surfaceCount = Math.max(0, m.workerCount - m.undergroundCount);
+    m.ppeCompliance = Math.max(55, Math.min(100, m.ppeCompliance + randInt(-2,2)));
+    if(Math.random()<0.08){ m.operationalStatus = rand(OP_STATUS); }
+    if(Math.random()<0.1){ m.alerts = Math.max(0, m.alerts + rand([-1,0,1])); }
+    m.sensorStatus = m.operationalStatus==='Critical'?'ALERT':m.operationalStatus==='Warning'?'DEGRADED':'NORMAL';
+    m.safetyStatus = m.operationalStatus==='Critical'?'CRITICAL':m.operationalStatus==='Warning'?'WARNING':(m.ppeCompliance<85?'ATTENTION':'NORMAL');
+    m.lastUpdated = Date.now();
+  }
+  renderSummary();
+  renderMarkers();
+  if(RMI.selectedId) renderDetailPanel();
+  tickTimestamp();
+}
+function startSim(){
+  if(RMI.simTimer) return;
+  RMI.simTimer = setInterval(()=>{ if(!RMI.simPaused) simulateStep(); }, 4000);
+}
+RMI.togglePause = function(){
+  RMI.simPaused = !RMI.simPaused;
+  $('rmiLive').classList.toggle('paused', RMI.simPaused);
+  $('rmiLiveText').textContent = RMI.simPaused ? 'SIMULATION PAUSED' : 'LIVE SIMULATION';
+  $('rmiPauseBtn').textContent = RMI.simPaused ? '▶ Resume' : '⏸ Pause';
+};
+
+/* ==================================================================== */
+/* AI SAFETY VISION — YOLOv8 / Roboflow adapter                         */
+/* ==================================================================== */
+
+/**
+ * runMineVision(image)
+ * Modular inference adapter. If CONFIG.visionEndpoint is set, this posts
+ * the image to a same-origin backend route that proxies YOLOv8/Roboflow
+ * (keeping the real API key server-side). Otherwise it falls back to a
+ * clearly-labelled simulated detector so the UI stays fully functional
+ * in this frontend-only prototype.
+ */
+async function runMineVision(image){
+  if(CONFIG.visionEndpoint){
+    try{
+      const fd = new FormData();
+      fd.append('image', image);
+      const res = await fetch(CONFIG.visionEndpoint, {method:'POST', body:fd});
+      if(!res.ok) throw new Error('vision endpoint error '+res.status);
+      const data = await res.json();
+      return Object.assign({mode:'LIVE'}, data);
+    }catch(err){
+      return simulatedVisionResult(err.message);
+    }
+  }
+  return simulatedVisionResult(null);
+}
+function simulatedVisionResult(errorNote){
+  const pool = CONFIG.supportedClasses;
+  const n = randInt(2,5);
+  const detections = Array.from({length:n}, ()=>{
+    const cls = rand(pool);
+    return { class: cls, confidence: (0.55+Math.random()*0.4).toFixed(2),
+             violation: cls==='ppe_violation'||cls==='restricted_zone_entry'||cls==='unsafe_proximity' };
+  });
+  return { mode:'SIMULATED', note: errorNote?('Live endpoint unavailable — showing simulated result ('+errorNote+')'):'No vision model configured — showing simulated result', detections, ts: Date.now() };
+}
+RMI.runMineVision = runMineVision;
+
+function buildVisionUI(){
+  const box = $('rmiVision');
+  box.innerHTML = `
+    <div class="rmi-panel">
+      <h3>🎥 AI Safety Vision <span class="rmi-tag">${CONFIG.visionEndpoint?'MODEL CONFIGURED':'SIMULATED FALLBACK'}</span></h3>
+      <div class="muted" style="font-size:12px;margin-bottom:8px">Modular YOLOv8 / Roboflow adapter. Detection classes shown are limited to those the configured model actually supports; without a configured model this panel runs a labelled simulation.</div>
+      <div class="box">
+        <input type="file" id="rmiVisionFile" accept="image/*" onchange="RMI.handleVisionFile(event)">
+        <div class="muted" style="font-size:12px;margin-top:6px">Upload a still frame to run detection (camera capture on supported devices).</div>
+        <div id="rmiVisionOut"></div>
+      </div>
+    </div>
+  `;
+}
+RMI.handleVisionFile = async function(evt){
+  const file = evt.target.files[0];
+  const out = $('rmiVisionOut');
+  if(!file){ return; }
+  const url = URL.createObjectURL(file);
+  out.innerHTML = `<img src="${url}" alt="uploaded frame"><div class="muted" style="margin-top:8px">Running inference…</div>`;
+  const result = await runMineVision(file);
+  const chips = result.detections.map(d=>`<span class="rmi-detbox ${d.violation?'viol':''}">${d.class.replace(/_/g,' ')} · ${(d.confidence*100).toFixed(0)}%</span>`).join('');
+  out.innerHTML = `<img src="${url}" alt="uploaded frame">
+    <div style="margin-top:10px"><span class="rmi-tag">${result.mode==='LIVE'?'LIVE MODEL':'SIMULATED / DEMONSTRATION DATA'}</span></div>
+    <div style="margin-top:8px">${chips || '<span class=\"muted\">No detections.</span>'}</div>
+    ${result.note?`<div class="muted" style="font-size:11px;margin-top:8px">${result.note}</div>`:''}`;
+};
+
+})();
+
+</script>
+<div id="mkiOverlay" role="alertdialog" aria-modal="true" aria-labelledby="mkiTitle" aria-describedby="mkiDesc">
+  <div class="mki-modal" id="mkiModal">
+    <div class="mki-global-head" id="mkiGlobalHead">
+      <div class="mki-beacon" aria-hidden="true">⚠</div>
+      <h2 id="mkiTitle">🚨 INCIDENT DETECTED</h2>
+      <div class="mki-cond">DEMO / SIMULATION</div>
+      <div class="mki-loc" id="mkiDetectedInfo"><b>Mine A</b><br>Zone C · Underground Working District<br>Potential Roof / Strata Instability<br><span id="mkiDetectedAt"></span><br>Detection source: Simulated sensor S-03</div>
+      <p id="mkiDesc">Potential hazard detected.</p>
+      <div class="mki-global-status" id="mkiGlobalStatus">AWAITING INSPECTOR VERIFICATION</div>
+    </div>
+    <div class="mki-global-actions"><button class="mki-verify" id="mkiVerifyBtn" onclick="overlayVerify()">REVIEW VERIFICATION BOARD</button>
+      <button class="mki-mute" id="mkiMuteBtn" onclick="muteAlert()">🔇 Mute Alert</button>
+      <button class="danger" onclick="endIncidentSimulation()">⏹ END SIMULATION</button></div>
+    <div id="mkiGlobalBoard" class="mki-global-board"></div>
+    <div class="mki-note" style="text-align:center;flex:none">Simulated prototype incident · no live underground camera feed or real notifications</div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const screens=['home','worker','gate','complaint','officer','forma','formc','ppereg','headcount','wfheadcount','alert','alarm','admin','compliance','assistant','regionalIntel'];
+function show(id){if(document.body.classList.contains('emergency-mode'))return;screens.forEach(x=>$(x)?.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);refreshAll();}
+
+/* ---------- state ---------- */
+let db={queue:JSON.parse(localStorage.getItem('mk_queue')||'[]'),
+        complaints:JSON.parse(localStorage.getItem('mk_complaints')||'[]'),
+        audit:JSON.parse(localStorage.getItem('mk_audit')||'[]'),
+        attendance:JSON.parse(localStorage.getItem('mk_att')||'[]'),
+        present:parseInt(localStorage.getItem('mk_present')||'127'),
+        tokensIn:parseInt(localStorage.getItem('mk_tokens')||'31')};
+function save(){localStorage.setItem('mk_queue',JSON.stringify(db.queue));
+ localStorage.setItem('mk_complaints',JSON.stringify(db.complaints));
+ localStorage.setItem('mk_audit',JSON.stringify(db.audit));
+ localStorage.setItem('mk_att',JSON.stringify(db.attendance));
+ localStorage.setItem('mk_present',db.present);
+ localStorage.setItem('mk_tokens',db.tokensIn);}
+
+async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));
+ return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,20);}
+async function logAudit(action,detail){
+ const prev=db.audit.length?db.audit[db.audit.length-1].hash:'GENESIS';
+ const h=await sha256(prev+action+detail+Date.now());
+ db.audit.push({action,detail,hash:h});save();renderAudit();}
+function renderAudit(){ $('auditTrail').innerHTML=db.audit.length?
+ db.audit.slice(-5).map(e=>`<div class="row"><span>${e.action} <span class="muted">${e.detail}</span></span><span class="mono">${e.hash}</span></div>`).join(''):
+ '<span class="muted">Records will be hash-chained here as events occur.</span>';}
+
+/* ---------- worker check-in flow ---------- */
+let currentWorker=null;
+function setStep(n,label){$('checkinSteps').innerHTML=
+ `<span class="step ${n>1?'done':'pending'}">1</span>QR &nbsp;<span class="step ${n>2?'done':n===2?'pending':''}">2</span>Biometric &nbsp;<span class="step ${n>3?'done':n===3?'pending':''}">3</span>PPE Gate &nbsp;<span class="step ${n>4?'done':n===4?'pending':''}">4</span>Geo-verify &nbsp;<span class="step ${n>4?'done':''}">5</span>Marked Present`;}
+function workerScan(){
+ currentWorker={id:'WK001',name:'Rahul Patil',role:'HEMM Operator'};
+ $('workerScanResult').innerHTML='<div class="notice">QR identified: <b>WK001 — Rahul Patil</b> (HEMM Operator)<br>▶ Step 2: Biometric face-match...</div>';
+ setStep(2,'Biometric');
+ $('btnQR').disabled=true;
+ setTimeout(()=>{
+  $('workerScanResult').innerHTML='<div class="notice">👤 Face match: <b>98.7% confidence ✓</b><br>▶ Step 3: Mandatory PPE gate check...</div>';
+  setStep(3,'PPE');logAudit('BIOMETRIC','WK001 face-match 98.7%');
+  setTimeout(()=>{openGate();},700);
+ },900);}
+function openGate(){
+ $('gateWorkerName').textContent=currentWorker.name;
+ const items=['Safety Helmet','Safety Shoes','Protective Gloves','Self-Rescuer','Reflective Jacket'];
+ $('ppeGateList').innerHTML=items.map((it,i)=>`<div class="ppe-item"><span>▣ ${it}</span><button id="ppe${i}" onclick="ppeOK(${i},'${it}')">Scan RFID</button></div>`).join('');
+ $('gateResult').innerHTML='';show('gate');}
+let ppeScanned=[];
+function ppeOK(i,name){$('ppe'+i).outerHTML='<span class="badge">✓ Verified</span>';
+ ppeScanned.push(name);logAudit('PPE_GATE',name+' verified — '+currentWorker.id);
+ if(ppeScanned.length===5){
+  $('gateResult').innerHTML=`<div class="notice"><b>All PPE verified ✓</b> (Rule 126 compliant)<br>▶ Step 4: Geo-verifying assigned location...</div>`;
+  setTimeout(()=>{
+   $('gateResult').innerHTML+=`<div class="notice">📍 Location verified: <b>Mine A / Zone C</b> matches assignment ✓<br>▶ Step 5: Fatigue check (HEMM operator)...</div>`;
+   setTimeout(()=>{
+    $('gateResult').innerHTML+=`<div class="notice">⏱ Last shift ended 14 hrs ago — <b>fit for duty ✓</b><br><button onclick="markAttendance()">✓ Confirm & Mark Present</button></div>`;
+   },800);
+  },900);}}
+function markAttendance(){
+ $('attStat').textContent='Present';$('wId').textContent='WK001';
+ $('workerDash').style.display='block';
+ db.queue.push({type:'ATTENDANCE',worker:'WK001',ts:Date.now()});
+ db.attendance.push({worker:'WK001 — Rahul Patil',in:new Date().toLocaleTimeString(),ppe:'✓',token:'IN',hash:''});
+ db.present++;db.tokensIn++;
+ sha256('WK001'+Date.now()).then(h=>{db.attendance[db.attendance.length-1].hash=h;save();});
+ logAudit('ATTENDANCE','WK001 checked in — Mine A / Zone C');
+ save();
+ $('workerScanResult').innerHTML='<div class="notice">✅ <b>Present.</b> Token taken underground. Record queued offline — will sync when connected.</div>';
+ setStep(5,'Done');refreshAll();}
+
+/* ---------- complaints ---------- */
+function voiceSim(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){$('complaintText').value='My safety shoes sole is cracked and water seeps in during the night shift.';return;}
+ const r=new SR();r.lang='hi-IN';
+ $('complaintResult').innerHTML='<div class="notice">🎤 Speak now… (Hindi default)</div>';
+ r.onresult=e=>{$('complaintText').value=e.results[0][0].transcript;$('complaintResult').innerHTML='';};
+ r.onerror=()=>{$('complaintResult').innerHTML='<div class="notice">Mic unavailable in this browser — typing works fine.</div>';};
+ r.start();}
+function saveComplaint(){
+ const t=$('complaintText').value.trim();if(!t){alert('Please enter a complaint.');return}
+ const c={text:t,lang:$('lang').value,ts:Date.now(),by:currentWorker?currentWorker.id:'WK001'};
+ db.complaints.push(c);db.queue.push({type:'COMPLAINT',ref:c.ts});
+ logAudit('COMPLAINT',c.by+' ('+c.lang+')');save();
+ $('complaintResult').innerHTML='<div class="notice">✅ Complaint saved offline and queued for sync. Management dashboard will show it after synchronization.</div>';}
+
+/* ---------- incident simulation: alert -> verify -> alarm -> evacuation headcount ---------- */
+const ZONES=[{n:'Zone A',ug:18,sf:11},{n:'Zone B',ug:24,sf:9},{n:'Zone C',ug:31,sf:12},{n:'Zone D',ug:16,sf:8}];
+const AFFECTED=2, ZONE_UG=31;
+const INC_TITLE='Potential Roof / Strata Instability';
+const STAGES=[
+ {phase:1,label:'Evacuation initiated',m:0,e:0},
+ {phase:2,label:'Personnel responding',m:3,e:12},
+ {phase:3,label:'Muster point check-in',m:9,e:14},
+ {phase:3,label:'Muster point check-in',m:17,e:9},
+ {phase:3,label:'Muster point check-in',m:24,e:5},
+ {phase:4,label:'Token reconciliation',m:27,e:2},
+ {phase:5,label:'Headcount reconciliation',final:true}];
+const PHASES=['Evacuation initiated','Personnel responding','Muster point check-in','Token reconciliation','Headcount reconciliation'];
+let inc=null, demoTimer=null, incidentReturn=null, incidentOverflow='', mountedIncidentView=null;
+const incidentViewHomes=new Map();
+
+/* Web Audio alert tone (no external files). Started from a user gesture. */
+let audioCtx=null, toneTimer=null, toneStopTimer=null, alertMuted=false;
+const activeTones=new Set();
+function ensureAudio(){try{if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC();}
+ if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}catch(e){}}
+function beep(freq,start,dur,vol){if(!audioCtx)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+start;activeTones.add(o);o.onended=()=>activeTones.delete(o);
+ o.type='square';o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.01);
+ g.gain.setValueAtTime(vol,t+dur-0.02);g.gain.linearRampToValueAtTime(0,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.02);}catch(e){}}
+function tonePattern(){beep(740,0,0.16,0.045);beep(740,0.26,0.16,0.045);beep(740,0.52,0.16,0.045);}
+function startTone(){stopTone();if(alertMuted)return;tonePattern();toneTimer=setInterval(tonePattern,1400);toneStopTimer=setTimeout(stopTone,2800);}
+function stopTone(){if(toneTimer){clearInterval(toneTimer);toneTimer=null;}if(toneStopTimer){clearTimeout(toneStopTimer);toneStopTimer=null;}activeTones.forEach(o=>{try{o.stop();}catch(e){}});activeTones.clear();}
+function alarmBurst(){if(alertMuted)return;ensureAudio();for(let i=0;i<3;i++){beep(620,i*0.6,0.28,0.04);beep(820,i*0.6+0.3,0.28,0.04);}}
+function muteAlert(){alertMuted=true;stopTone();$('mkiMuteBtn').textContent='🔇 Alert muted';}
+
+function onDemoAuto(){ensureAudio();clearTimeout(demoTimer);
+ if($('demoAuto').checked){const d=60000+Math.random()*60000;
+  demoTimer=setTimeout(function tick(){if(!inc&&$('officer').classList.contains('active'))startIncident(true);
+   else if($('demoAuto').checked)demoTimer=setTimeout(tick,15000);},d);}}
+
+function startIncident(auto){
+  if(inc)return;
+  incidentReturn={screen:screens.find(id=>$(id)?.classList.contains('active'))||'home',scrollY:window.scrollY};
+  incidentOverflow=document.documentElement.style.overflow;
+  ensureAudio();alertMuted=false;$('mkiMuteBtn').textContent='🔇 Mute Alert';
+  inc={state:'pending',ts:new Date(),stage:0,scenario:$('simScenario').value,timers:[],auto:!!auto};
+  $('mkiDetectedAt').textContent='Detection time: '+inc.ts.toLocaleString();
+  $('mkiGlobalStatus').textContent='AWAITING INSPECTOR VERIFICATION';$('mkiGlobalBoard').innerHTML='';
+  $('mkiOverlay').classList.add('on');document.body.classList.add('emergency-mode');document.documentElement.style.overflow='hidden';
+  Array.from(document.body.children).filter(el=>el.id!=='mkiOverlay').forEach(el=>{el.inert=true;});startTone();
+  inc.timers.push(setTimeout(()=>{const b=$('mkiVerifyBtn');if(b)b.focus();},50));
+  logAudit('INCIDENT_DETECTED',INC_TITLE+' — Mine A / Zone C (simulated)'+(auto?' [auto demo]':''));
+  renderIncidentUI();}
+function mountIncidentScreen(id){
+ const node=$(id);if(!node)return;
+ if(mountedIncidentView===node)return;
+ if(mountedIncidentView)restoreIncidentScreen(mountedIncidentView.id);
+ if(!incidentViewHomes.has(id))incidentViewHomes.set(id,{parent:node.parentNode,next:node.nextSibling,className:node.className});
+ $('mkiGlobalBoard').replaceChildren(node);node.classList.add('active');mountedIncidentView=node;
+ $('mkiModal').classList.add('mki-flow');$('mkiVerifyBtn').hidden=true;
+}
+function restoreIncidentScreen(id){
+ const node=$(id),home=incidentViewHomes.get(id);if(!node||!home)return;
+ if(home.next&&home.next.parentNode===home.parent)home.parent.insertBefore(node,home.next);else home.parent.appendChild(node);
+ node.className=home.className;if(mountedIncidentView===node)mountedIncidentView=null;
+}
+function restoreIncidentScreens(){if(mountedIncidentView)restoreIncidentScreen(mountedIncidentView.id);incidentViewHomes.forEach((_,id)=>restoreIncidentScreen(id));incidentViewHomes.clear();}
+function overlayVerify(){if(!inc||inc.state!=='pending')return;mountIncidentScreen('alert');renderVerify();}
+
+async function endIncidentSimulation(){
+ if(!inc||!window.confirm('End this demo simulation and restore the current page?'))return;
+ inc.timers.forEach(clearTimeout);inc.timers=[];clearTimeout(demoTimer);demoTimer=null;stopTone();
+ await logAudit('INCIDENT_CLOSED','Demo incident ended — Mine A / Zone C');
+ inc=null;alertMuted=false;restoreIncidentScreens();$('mkiGlobalBoard').replaceChildren();$('mkiModal').classList.remove('mki-flow');$('mkiVerifyBtn').hidden=false;$('mkiOverlay').classList.remove('on');document.body.classList.remove('emergency-mode');
+ Array.from(document.body.children).forEach(el=>{el.inert=false;});document.documentElement.style.overflow=incidentOverflow;
+ const restore=incidentReturn;incidentReturn=null;
+ if(restore){screens.forEach(id=>$(id)?.classList.toggle('active',id===restore.screen));window.scrollTo(0,restore.scrollY);}
+ refreshAll();
+}
+
+function vRow(k,v){return `<div class="mki-kv"><span>${k}</span><b>${v}</b></div>`;}
+function sCard(l,v,st,cls){return `<div class="mki-sc"><small>${l}</small><b>${v}</b><i class="${cls}">${st}</i></div>`;}
+function renderVerify(){
+ if(!inc){$('verifyBody').innerHTML='<div class="mki-result ok">No incident awaiting verification. Zones A–D are normal.</div>';return;}
+ const ts=inc.ts.toLocaleString();
+ const locked=inc.state!=='pending';
+ $('verifyBody').innerHTML=`<div class="mki-cols">
+ <div>
+  <div class="mki-panel"><h3>Incident</h3>
+   ${vRow('Incident',INC_TITLE)}${vRow('Location','Mine A<br>Zone C<br>Underground Working District')}${vRow('Detection time',ts)}
+   ${vRow('Secondary indicators','Environmental readings below')}</div>
+  <div class="mki-panel" style="margin-top:14px"><h3>Sensor / Monitoring Data <span class="mki-chip sim">SIMULATED DEMONSTRATION DATA</span></h3>
+   <div class="mki-sens">
+     ${sCard('Methane (CH₄)','0.82%','WATCH','mki-warn')}${sCard('Oxygen (O₂)','20.1%','NORMAL','mki-ok')}
+     ${sCard('CO','12 ppm','NORMAL','mki-ok')}${sCard('Ventilation / airway','Air velocity 1.8 m/s','NORMAL','mki-ok')}
+    ${sCard('Temperature','31.4°C','NORMAL','mki-ok')}</div>
+   <div class="mki-note">Not real sensor readings.</div></div>
+  <div class="mki-panel" style="margin-top:14px"><h3>Strata / Ground Condition <span class="mki-chip sim">SIMULATED</span></h3>
+   ${vRow('Roof condition','<span class="mki-warn">WATCH</span>')}${vRow('Rib condition','<span class="mki-ok">STABLE</span> / <span class="mki-warn">WATCH</span>')}
+   ${vRow('Recent strata movement','<span class="mki-crit">DETECTED</span>')}${vRow('Geotechnical risk','<span class="mki-crit">ELEVATED</span>')}
+   ${vRow('Affected working district','Zone C')}</div>
+ </div>
+ <div>
+  <div class="mki-panel"><h3>AI Safety Vision — YOLOv8 / Roboflow</h3>
+   <div class="mki-kv"><span>Analysis mode</span><b>SIMULATED / STILL-FRAME INFERENCE</b></div>
+   <div id="mkiVision">${visionHTML(null)}</div>
+   <div class="mki-note">No continuous underground live camera feed is assumed in this prototype. Optional: run the adapter on a still frame
+    <input type="file" accept="image/*" onchange="mkiVisionFile(event)" style="margin:6px 0 0;padding:6px;font-size:12px;background:#0f1b2b;color:#c4d0e0;border-color:#22324a"></div></div>
+  <div class="mki-decide"><h3>Inspector Verification</h3>
+   <div class="mki-note" style="margin:0">Verification activates the emergency response screen. The inspector must start Zone C evacuation headcount there.</div>
+   <button class="mki-go" onclick="verifyAlert()" ${locked?'disabled':''}>✓ VERIFY &amp; INITIATE EVACUATION</button>
+   <button class="mki-alt" onclick="dismissIncident()" ${locked?'disabled':''}>Dismiss / False Alarm</button></div>
+ </div></div>`;}
+const SIM_DETS=[['Unsafe proximity',0.91,1],['Restricted zone entry',0.87,1],['HEMM vehicle',0.94,0],['Personnel detected',0.96,0]];
+function visionHTML(live){
+ const d=live?live.detections.map(x=>[String(x.class).replace(/_/g,' '),parseFloat(x.confidence),x.violation]):SIM_DETS;
+ return d.map(x=>`<div class="mki-det ${x[2]?'viol':''}"><span>${x[0]}</span><span class="c">${x[1].toFixed(2)}</span></div>`).join('')+
+ `<div class="mki-note">${live?'YOLOv8 / Roboflow inference — configured model result':'YOLOv8 / Roboflow inference — SIMULATED DEMONSTRATION RESULT'}</div>`;}
+async function mkiVisionFile(e){
+ const f=e.target.files[0];if(!f)return;$('mkiVision').innerHTML='<div class="mki-note">Running inference on still frame…</div>';
+ try{const r=await window.RMI.runMineVision(f);$('mkiVision').innerHTML=visionHTML(r.mode==='LIVE'?r:null)+
+  (r.mode==='LIVE'?'':'<div class="mki-note">No model configured — showing the simulated demonstration result.</div>');}
+ catch(err){$('mkiVision').innerHTML=visionHTML(null);}}
+
+async function dismissIncident(){
+  if(!inc||inc.state!=='pending')return;
+  await logAudit('INCIDENT_DISMISSED','Marked false alarm by Inspector IN-004 — Mine A / Zone C (simulated)');
+  await logAudit('INCIDENT_CLOSED','Demo incident closed after false-alarm dismissal — Mine A / Zone C');
+  inc=null;endIncidentCleanup();}
+function endIncidentCleanup(){stopTone();clearTimeout(demoTimer);demoTimer=null;restoreIncidentScreens();$('mkiGlobalBoard').replaceChildren();$('mkiModal').classList.remove('mki-flow');$('mkiVerifyBtn').hidden=false;$('mkiOverlay').classList.remove('on');document.body.classList.remove('emergency-mode');Array.from(document.body.children).forEach(el=>el.inert=false);document.documentElement.style.overflow=incidentOverflow;const restore=incidentReturn;incidentReturn=null;if(restore){screens.forEach(id=>$(id)?.classList.toggle('active',id===restore.screen));window.scrollTo(0,restore.scrollY);}refreshAll();}
+async function verifyAlert(){
+ if(!inc||inc.state!=='pending')return;
+ inc.state='verified';
+ await logAudit('INCIDENT_VERIFIED',INC_TITLE+' verified by Inspector IN-004 — Mine A / Zone C');
+  $('mkiGlobalStatus').textContent='EMERGENCY RESPONSE ACTIVE';await activateAlarm();}
+async function activateAlarm(){
+  if(!inc||inc.state!=='verified')return;
+  await logAudit('ALARM','Emergency alarm — Mine A / Zone C');
+  alarmBurst();$('mkiGlobalStatus').textContent='EMERGENCY RESPONSE ACTIVE';mountIncidentScreen('alarm');}
+async function startEvacuationHeadcount(){
+  if(!inc||inc.state!=='verified')return;
+  inc.state='evac';inc.stage=0;
+  await logAudit('EVACUATION_INITIATED','Zone-specific evacuation — Mine A / Zone C (simulated notification)');
+  await logAudit('HEADCOUNT_STARTED','Zone C — '+ZONE_UG+' personnel underground');
+  renderEvac();openEvacBoard();
+  inc.timers.push(setTimeout(stepEvac,6500));}
+function openEvacBoard(){if(!inc||inc.state!=='evac')return;mountIncidentScreen('headcount');}
+function stepEvac(){
+ if(!inc||inc.state!=='evac')return;
+ inc.stage++;
+ if(STAGES[inc.stage].final){finalizeMuster();return;}
+ renderIncidentUI();inc.timers.push(setTimeout(stepEvac,2200));}
+async function finalizeMuster(){
+ if(!inc||inc.state!=='evac')return;
+ inc.timers.forEach(clearTimeout);inc.timers=[];
+ inc.stage=STAGES.length-1;inc.state='done';
+ const c=musterCounts();renderIncidentUI();
+ await logAudit('HEADCOUNT_RECONCILED',`${c.m}/${ZONE_UG} accounted, ${c.u} unaccounted — Zone C`);
+ await logAudit('HEADCOUNT',`${c.m}/${ZONE_UG} accounted, ${c.u} missing`);}
+/* legacy entry point: jump straight to the reconciled result */
+function runMuster(){if(inc&&inc.state==='evac')finalizeMuster();}
+async function closeIncident(){
+  if(!inc||inc.state!=='done')return;
+  endIncidentSimulation();}
+
+function musterCounts(){
+ const st=STAGES[inc.stage];
+ if(st.final){const all=inc.scenario==='all';return{m:all?31:29,e:0,u:all?0:2,ug:all?0:2,final:true};}
+ return{m:st.m,e:st.e,u:null,ug:ZONE_UG-st.m-st.e,final:false};}
+
+function renderEvac(){
+ const box=$('evacBody');
+ if(!inc||!(inc.state==='evac'||inc.state==='done')){
+  box.innerHTML='<div class="mki-result ok" style="margin-top:14px">No active evacuation. Zones A–D are operating normally. The normal headcount is under <b>Mine Workforce Headcount</b>.</div>';return;}
+ const c=musterCounts(),st=STAGES[inc.stage],pct=Math.round(c.m/ZONE_UG*100);
+ const phase=st.phase;
+ const ph=PHASES.map((p,i)=>`<div class="mki-ph ${i+1<phase||(c.final&&i+1<=5)?'done':i+1===phase?'on':''}">${i+1}. ${p}</div>`).join('');
+ let toks='';for(let i=0;i<ZONE_UG;i++){let cls='';
+  if(i<c.m)cls='m';else if(i<c.m+c.e)cls='e';else if(c.final&&c.u&&i>=ZONE_UG-c.u)cls='u';
+  toks+=`<span class="mki-tok ${cls}">T-${301+i}</span>`;}
+ const res=!c.final?'':(c.u===0?`<div class="mki-result ok">✓ 31 / 31 accounted for — all Zone C personnel at muster point. Headcount reconciled.</div>`
+  :`<div class="mki-result bad">⚠ 29 / 31 accounted for<br>2 unaccounted — rescue/search response required</div>`);
+ box.innerHTML=`
+ <div class="mki-banner ${inc.state==='done'&&c.u===0?'done':''}"><span class="dot"></span>EMERGENCY ALARM ACTIVE — Mine A / Zone C</div>
+ <div class="mki-note" style="margin:0 0 8px">Zone-specific evacuation headcount initiated. <span class="mki-chip sim">SIMULATED NOTIFICATION</span> ✓ Emergency notification issued to affected underground personnel.</div>
+ <div class="mki-strip" style="margin:10px 0">${['Zone A','Zone B','Zone C','Zone D'].map(z=>`<div class="mki-zone ${z==='Zone C'?'evac':''}"><b>${z}</b><span>${z==='Zone C'?'EVACUATION ACTIVE':'NORMAL'}</span></div>`).join('')}</div>
+ <div class="mki-phases">${ph}</div>
+ <div class="mki-note" style="margin:0"><b style="color:#f4cf7a">${st.label}</b>${c.final?' — complete':' …'}</div>
+ <div class="mki-cards">
+  ${sCard('Personnel in affected zone',ZONE_UG,'BEFORE EVACUATION','mki-warn')}
+  ${sCard('Accounted at muster',c.m,'CHECKED IN','mki-ok')}
+  ${sCard('En route',c.e,'RESPONDING','mki-warn')}
+  ${sCard('Still underground',c.ug,c.final&&c.u?'NOT REPORTED':'PENDING','mki-crit')}
+  ${sCard('Missing / unaccounted',c.final?c.u:'—',c.final?(c.u?'SEARCH REQUIRED':'NONE'):'PENDING RECONCILIATION',c.final&&c.u?'mki-crit':'mki-ok')}
+ </div>
+ <div class="mki-muted" style="font-size:13px">Evacuation progress — ${c.m} / ${ZONE_UG} accounted (${pct}%)</div>
+ <div class="mki-bar"><div style="width:${pct}%"></div></div>
+ ${res}
+ <div class="mki-panel"><h3>Token reconciliation — Zone C <span class="mki-chip sim">SIMULATED</span></h3>
+  <div class="mki-note" style="margin:0">Green: at muster · Amber: en route · Red: unaccounted</div><div class="mki-toks" id="musterList">${toks}</div></div>
+ <div class="mki-btns">
+   ${inc.state==='evac'?'<button class="secondary" onclick="runMuster()">⏭ Skip to reconciled result</button>':'<button class="danger" onclick="closeIncident()">⏹ End Simulation</button>'}</div>`;}
+
+function renderIncidentUI(){
+ const evac=inc&&(inc.state==='evac'||inc.state==='done');
+ // sensors
+ ['NORMAL','NORMAL','NORMAL','NORMAL'].forEach((t,i)=>{const el=$('sens'+i);if(!el)return;let txt=t,cls='badge';
+  if(i===2&&inc){txt=evac?'EVACUATION ACTIVE':'ALERT';cls='badge red';}el.textContent=txt;el.className=cls;});
+ // zone strip
+ $('zoneStrip').innerHTML=ZONES.map((z,i)=>`<div class="mki-zone ${i===2&&evac?'evac':''}"><b>${z.n}</b><span>${i===2&&evac?'EVACUATION ACTIVE':'NORMAL'}</span><small>${z.ug} UG / ${z.sf} surface</small></div>`).join('');
+ // workforce table
+ $('wfBody').innerHTML=ZONES.map((z,i)=>`<tr class="${i===2&&evac?'evac':''}"><td><b>${z.n}</b></td><td class="n">${z.ug}</td><td class="n">${z.sf}</td><td class="n">${z.ug+z.sf}</td><td>${i===2&&evac?'<span class="badge red">Evacuation Active</span>':'<span class="badge">Normal</span>'}</td></tr>`).join('')+
+  `<tr><td><b>Total</b></td><td class="n"><b>${ZONES.reduce((a,z)=>a+z.ug,0)}</b></td><td class="n"><b>${ZONES.reduce((a,z)=>a+z.sf,0)}</b></td><td class="n"><b>${ZONES.reduce((a,z)=>a+z.ug+z.sf,0)}</b></td><td></td></tr>`;
+ $('wfNote').innerHTML=evac?`<div class="notice">Zone C is under evacuation. Missing/unaccounted personnel are tracked only on the <a href="#" onclick="show('headcount');return false">Emergency Evacuation Headcount</a> board.</div>`:'';
+ // sim button
+ const btn=$('btnSim');if(btn)btn.disabled=!!inc;
+ // active panel
+ const P=$('incPanel');
+ if(!inc){P.innerHTML='';}
+ else if(inc.state==='pending'||inc.state==='verified'){
+  P.innerHTML=`<div class="mki-active"><h3>🚨 INCIDENT AWAITING VERIFICATION</h3><div class="mki-sub">Mine A · Zone C · ${INC_TITLE}</div>
+   <button class="danger" onclick="renderVerify();show('alert')">Open Verification Board</button></div>`;}
+ else{const c=musterCounts();
+  P.innerHTML=`<div class="mki-active"><h3>🚨 ACTIVE INCIDENT</h3>
+   <div class="mki-sub">Mine A · Zone C · ${INC_TITLE}</div>
+   <div style="margin-top:6px;font-weight:800;color:#ffb3ad">Evacuation: ${inc.state==='done'?(c.u?'RECONCILED — SEARCH REQUIRED':'RECONCILED'):'ACTIVE'}</div>
+   <div class="mki-nums"><div><b>${ZONE_UG}</b><span>underground</span></div><div><b>${c.m}</b><span>accounted</span></div><div><b>${ZONE_UG-c.m}</b><span>pending</span></div></div>
+   <div class="mki-sub" style="margin-bottom:8px">Other zones remain normal.</div>
+   <button class="danger" onclick="show('headcount')">Open Emergency Headcount</button></div>`;}
+  renderEvac();
+ if($('alert').classList.contains('active'))renderVerify();
+}
+
+/* ---------- sync ---------- */
+function syncNow(){
+ if(!db.queue.length){$('syncText').textContent='✓ No pending records. All synced.';return}
+ const n=db.queue.length;db.queue=[];
+ $('syncText').textContent=`✓ ${n} record(s) synchronized to central server. Dashboards updated.`;
+ logAudit('SYNC',n+' records pushed');save();refreshAll();}
+
+/* ---------- refresh / render ---------- */
+function refreshAll(){
+ $('stPresent').textContent=db.present;$('stTokens').textContent=db.tokensIn;
+ $('tokensIn').textContent=db.tokensIn;$('tokensOut').textContent=db.present-db.tokensIn;
+ $('stComplaints').textContent=db.complaints.length;$('stSync').textContent=db.queue.length;
+ $('dbWk1').textContent=db.attendance.some(a=>a.worker.startsWith('WK001'))?'Present':'Absent';
+ $('syncQueueOfficer').innerHTML=db.queue.length?
+  db.queue.map(q=>`<div class="row"><span>${q.type}</span><span class="badge yellow">Pending</span></div>`).join(''):
+  '<span class="muted">Queue empty — all records synced.</span>';
+ $('complaintsList').innerHTML=db.complaints.length?
+  db.complaints.map(c=>`<div class="row"><span>${c.text.slice(0,60)}…</span><span class="badge yellow">${c.lang}</span></div>`).join(''):
+  '<span class="muted">No complaints yet this shift.</span>';
+ $('formcBody').innerHTML=db.attendance.length?
+  db.attendance.map(a=>`<tr><td>${a.worker}</td><td>${a.in}</td><td>${a.ppe}</td><td>${a.token}</td><td class="mono">${a.hash||'…'}</td></tr>`).join(''):
+  '<tr><td colspan="5" class="muted">No check-ins yet — scan a worker QR to begin.</td></tr>';
+ renderIncidentUI();renderAudit();}
+
+
+/* ---------- voice assistant ---------- */
+const VA={
+ 'en-IN':{greet:'Namaste. I am Sahayak, your mine safety assistant. How can I help you today?',
+  ppe:'For today\'s shift you need: safety helmet, safety shoes, protective gloves, self-rescuer and a reflective jacket. Your shoes are due for replacement in 12 days.',
+  hours:'You can work a maximum of 8 continuous hours, with a 30 minute break after 4 hours. Fatigue check is mandatory for HEMM operators.',
+  wage:'Your biometric attendance is recorded digitally and linked directly to wage processing under the National Coal Wage Agreement. No middleman, no paper muster.',
+  helpline:'Emergency helpline: dial 112. In case of alarm, move to the nearest muster point and wait for headcount.'},
+ 'hi-IN':{greet:'नमस्ते। मैं सहायक हूँ, आपका माइन सुरक्षा सहायक। मैं आपकी क्या मदद कर सकता हूँ?',
+  ppe:'आज की शिफ्ट के लिए आपको चाहिए: सुरक्षा हेलमेट, सुरक्षा जूते, दस्ताने, सेल्फ-रैस्क्यूअर और रिफ्लेक्टिव जैकेट। आपके जूतों की जगह 12 दिनों में बदलनी है।',
+  hours:'आप लगातार अधिकतम 8 घंटे काम कर सकते हैं, 4 घंटे के बाद 30 मिनट का ब्रेक अनिवार्य है।',
+  wage:'आपकी बायोमेट्रिक हाजिरी डिजिटल रिकॉर्ड होती है और सीधे वेतन से जुड़ी होती है — कोई बिचौलिया नहीं।',
+  helpline:'आपातकालीन हेल्पलाइन: 112 डायल करें। अलार्म की स्थिति में निकटतम मस्टर पॉइंट पर जाएँ।'},
+ 'mr-IN':{greet:'नमस्कार. मी सहायक आहे, तुमचा खाण सुरक्षा सहायक. मी तुमची कशी मदत करू?',
+  ppe:'आजच्या शिफ्टसाठी तुम्हाला लागेल: सुरक्षा हेल्मेट, सुरक्षा बूट, हातमोजे, सेल्फ-रेस्क्यूअर आणि रिफ्लेक्टिव्ह जॅकेट.',
+  hours:'तुम्ही सतत जास्तीत जास्त 8 तास काम करू शकता, 4 तानंतर 30 मिनिटांचा ब्रेक बंधनकारक आहे.',
+  wage:'तुमची बायोमेट्रिक हजेरी डिजिटल नोंदली जाते थेट वेतनाशी जोडलेली असते.',
+  helpline:'आपत्कालीन हेल्पलाइन: 112. अलार्म असल्यास जवळच्या मस्टर पॉइंटवर जा.'},
+ 'bn-IN':{greet:'নমস্কার। আমি সহায়ক, আপনার খনি নিরাপত্তা সহকারী।',
+  ppe:'আজকের শিফটের জন্য আপনার প্রয়োজন: সেফটি হেলমেট, সেফটি জুতো, গ্লাভস, সেল্ফ-রেসকিউয়ার এবং রিফ্লেক্টিভ জ্যাকেট।',
+  hours:'আপনি টানা সর্বোচ্চ ৮ ঘণ্টা কাজ করতে পারবেন, ৪ ঘণ্টা পরে ৩০ মিনিটের বিরতি বাধ্যতামূলক।',
+  wage:'আপনার বায়োমেট্রিক হাজিরা ডিজিটালভাবে নথিভুক্ত হয় এবং সরাসরি মজুরির সঙ্গে যুক্ত।',
+  helpline:'জরুরি হেল্পলাইন: 112 ডায়াল করুন।'}
+};
+function vaSpeak(text){
+ const u=new SpeechSynthesisUtterance(text);u.lang=$('vaLang').value;u.rate=0.95;
+ speechSynthesis.cancel();speechSynthesis.speak(u);}
+function vaGreet(){const d=VA[$('vaLang').value];$('vaOut').innerHTML='<b>Sahayak:</b> '+d.greet;vaSpeak(d.greet);
+ logAudit('VOICE','Greeting played — '+$('vaLang').value);}
+function vaAsk(key){const d=VA[$('vaLang').value];$('vaOut').innerHTML='<b>Sahayak:</b> '+d[key];vaSpeak(d[key]);}
+function vaListen(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){$('vaOut').innerHTML='<b>Sahayak:</b> Voice input not supported in this browser — using quick questions instead.';return;}
+ $('vaOut').innerHTML='<b>You:</b> 🎤 Listening…';
+ const r=new SR();r.lang=$('vaLang').value;
+ r.onresult=e=>{const t=e.results[0][0].transcript.toLowerCase();
+  $('vaOut').innerHTML='<b>You:</b> '+t;
+  const key=t.includes('ppe')||t.includes('saman')||t.includes('सामान')?'ppe'
+   :t.includes('hour')||t.includes('ghanta')||t.includes('घंटा')?'hours'
+   :t.includes('wage')||t.includes('vetan')||t.includes('वेतन')?'wage'
+   :t.includes('help')||t.includes('alarm')||t.includes('112')?'helpline':'ppe';
+  setTimeout(()=>vaAsk(key),500);};
+ r.onerror=()=>{$('vaOut').innerHTML='<b>Sahayak:</b> Could not hear clearly — please try again or use a quick question.';};
+ r.start();}
+
+function updateNet(){const el=$('status');
+ el.textContent=navigator.onLine?'ONLINE — SYNC AVAILABLE':'OFFLINE MODE';
+ el.className=navigator.onLine?'offline online':'offline';}
+window.addEventListener('online',updateNet);window.addEventListener('offline',updateNet);
+updateNet();refreshAll();
+
+/* ---------- mk- visual layer: scroll reveal / chart fill / count-up (additive, isolated) ---------- */
+(function(){
+ try{
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function fillBars(scope){ scope.querySelectorAll('.fill[data-h]').forEach(f=>{ f.style.height=f.getAttribute('data-h')+'px'; }); }
+  function countUp(el){
+   const target=parseFloat(el.getAttribute('data-target'));
+   const dec=parseInt(el.getAttribute('data-decimals')||'0',10);
+   const suf=el.getAttribute('data-suffix')||'';
+   if(reduce || isNaN(target)){ el.textContent=target.toFixed(dec)+suf; return; }
+   let start=null; const dur=900;
+   function step(ts){ if(!start)start=ts; const p=Math.min((ts-start)/dur,1);
+    el.textContent=(target*p).toFixed(dec)+suf; if(p<1) requestAnimationFrame(step); else el.textContent=target.toFixed(dec)+suf; }
+   requestAnimationFrame(step);
+  }
+  if(reduce || !('IntersectionObserver' in window)){
+   document.querySelectorAll('.mk-reveal').forEach(el=>el.classList.add('in'));
+   document.querySelectorAll('.mk-chart').forEach(fillBars);
+   document.querySelectorAll('.mk-stats-grid .num[data-target]').forEach(countUp);
+   return;
+  }
+  const io=new IntersectionObserver(entries=>{
+   entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  },{threshold:.12});
+  document.querySelectorAll('.mk-reveal').forEach(el=>io.observe(el));
+
+  const chartIo=new IntersectionObserver(entries=>{
+   entries.forEach(e=>{ if(e.isIntersecting){ fillBars(e.target); chartIo.unobserve(e.target); } });
+  },{threshold:.2});
+  document.querySelectorAll('.mk-chart').forEach(el=>chartIo.observe(el));
+
+  const numIo=new IntersectionObserver(entries=>{
+   entries.forEach(e=>{ if(e.isIntersecting){ countUp(e.target); numIo.unobserve(e.target); } });
+  },{threshold:.4});
+  document.querySelectorAll('.mk-stats-grid .num[data-target]').forEach(el=>numIo.observe(el));
+ }catch(err){
+  console.error('[mk] visual layer failed, falling back to static content:', err);
+  document.querySelectorAll('.mk-reveal').forEach(el=>el.classList.add('in'));
+  document.querySelectorAll('.fill[data-h]').forEach(f=>{ f.style.height=f.getAttribute('data-h')+'px'; });
+ }
+})();
+
+/* ---------- mk- navigation layer: hamburger / Operations dropdown / scroll-to-section ----------
+   Purely additive: it only ever calls the existing show() and RMI.open() — it never
+   redefines them, never touches the "screens" array, and the Regional Mine
+   Intelligence module (including its own mobile bottom-sheet) is not modified. ---------- */
+(function(){
+ try{
+  const reduceMotionNav = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hamburger=$('mkHamburger'), mobileNav=$('mkMobileNav'),
+        mobileOpsToggle=$('mkMobileOpsToggle'), mobileOpsList=$('mkMobileOpsList'),
+        opsBtn=$('mkOpsBtn'), opsDropdown=$('mkOpsDropdown');
+
+  function closeMobileNav(){
+   mobileNav && mobileNav.classList.remove('open');
+   hamburger && (hamburger.classList.remove('open'), hamburger.setAttribute('aria-expanded','false'));
+   mobileOpsList && mobileOpsList.classList.remove('open');
+   mobileOpsToggle && mobileOpsToggle.setAttribute('aria-expanded','false');
+  }
+  function closeOpsDropdown(){
+   opsDropdown && opsDropdown.classList.remove('open');
+   opsBtn && opsBtn.setAttribute('aria-expanded','false');
+  }
+
+  if(hamburger && mobileNav){
+   hamburger.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = mobileNav.classList.toggle('open');
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', open?'true':'false');
+    if(!open){ mobileOpsList && mobileOpsList.classList.remove('open'); mobileOpsToggle && mobileOpsToggle.setAttribute('aria-expanded','false'); }
+   });
+  }
+  if(mobileOpsToggle && mobileOpsList){
+   mobileOpsToggle.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = mobileOpsList.classList.toggle('open');
+    mobileOpsToggle.setAttribute('aria-expanded', open?'true':'false');
+   });
+  }
+  if(opsBtn && opsDropdown){
+   opsBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = opsDropdown.classList.toggle('open');
+    opsBtn.setAttribute('aria-expanded', open?'true':'false');
+   });
+  }
+  document.querySelectorAll('.mk-ops-dropdown button, .mk-mobile-ops-list button').forEach(btn=>{
+   btn.addEventListener('click', ()=>{ closeOpsDropdown(); closeMobileNav(); });
+  });
+  document.addEventListener('click', e=>{
+   if(opsDropdown && opsDropdown.classList.contains('open') && !e.target.closest('.mk-ops-menu')) closeOpsDropdown();
+   if(mobileNav && mobileNav.classList.contains('open') && !e.target.closest('#mkMobileNav') && !e.target.closest('#mkHamburger')) closeMobileNav();
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeOpsDropdown(); closeMobileNav(); } });
+
+  function goToSection(id){
+   const doScroll=()=>{ const el=$(id); if(el && el.scrollIntoView){ el.scrollIntoView({behavior: reduceMotionNav?'auto':'smooth', block:'start'}); } };
+   const home=$('home');
+   if(home && home.classList.contains('active')){ doScroll(); }
+   else{ show('home'); requestAnimationFrame(()=>requestAnimationFrame(doScroll)); }
+  }
+  document.querySelectorAll('[data-mk-scroll]').forEach(a=>{
+   a.addEventListener('click', e=>{ e.preventDefault(); goToSection(a.getAttribute('data-mk-scroll')); closeMobileNav(); });
+  });
+  document.querySelectorAll('[data-mk-goto]').forEach(a=>{
+   a.addEventListener('click', e=>{
+    e.preventDefault();
+    const target=a.getAttribute('data-mk-goto');
+    show(target);
+    if(target==='regionalIntel' && window.RMI && RMI.open) RMI.open();
+    closeMobileNav();
+   });
+  });
+ }catch(err){
+  console.error('[mk-nav] navigation layer failed (existing show() navigation is unaffected):', err);
+ }
+})();
+</script>
+</body>
+</html>
